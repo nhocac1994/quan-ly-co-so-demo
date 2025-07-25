@@ -83,6 +83,9 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const isInitializedRef = useRef(false);
   const statusUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Lock để tránh multiple sync operations đồng thời
+  const syncLockRef = useRef(false);
+
   // Kiểm tra kết nối Google Sheets
   const checkConnection = useCallback(async (): Promise<boolean> => {
     // Nếu đã check rồi thì không check nữa
@@ -131,20 +134,21 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }));
   }, []);
 
-  // Thực hiện đồng bộ thủ công
+  // Thực hiện sync với lock
   const performSync = useCallback(async () => {
-    if (status.isRunning) return;
+    // Kiểm tra lock
+    if (syncLockRef.current) {
+      console.log('🔄 Sync đang chạy, bỏ qua request này');
+      return;
+    }
+
+    // Set lock
+    syncLockRef.current = true;
+    setStatus(prev => ({ ...prev, isProcessing: true }));
 
     try {
-      setStatus(prev => ({ ...prev, isRunning: true, error: null }));
-
-      // Kiểm tra kết nối
-      const isConnected = await checkConnection();
-      if (!isConnected) {
-        setStatus(prev => ({ ...prev, isRunning: false }));
-        return;
-      }
-
+      console.log('🔄 Bắt đầu sync...');
+      
       // Lấy dữ liệu từ localStorage
       const localStorageData = {
         thietBi: thietBiService.getAll(),
@@ -164,7 +168,8 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         isRunning: false,
         lastSync: new Date().toLocaleString('vi-VN'),
         syncCount: prev.syncCount + 1,
-        error: null
+        error: null,
+        isProcessing: false
       }));
 
     } catch (error) {
@@ -172,8 +177,12 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setStatus(prev => ({
         ...prev,
         isRunning: false,
-        error: `Lỗi đồng bộ: ${errorMessage}`
+        error: `Lỗi đồng bộ: ${errorMessage}`,
+        isProcessing: false
       }));
+    } finally {
+      // Release lock
+      syncLockRef.current = false;
     }
   }, [status.isRunning, checkConnection]);
 
@@ -204,9 +213,15 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Force sync ngay lập tức
   const forceSync = useCallback(async () => {
-    await syncEventService.forceSync();
-    updateStatusFromEventService();
-  }, [updateStatusFromEventService]);
+    // Kiểm tra lock
+    if (syncLockRef.current) {
+      console.log('🔄 Sync đang chạy, bỏ qua force sync');
+      return;
+    }
+
+    // Thực hiện sync thay vì gọi syncEventService
+    await performSync();
+  }, [performSync]);
 
   // Cập nhật config
   const updateConfig = useCallback((newConfig: Partial<AutoSyncConfig>) => {

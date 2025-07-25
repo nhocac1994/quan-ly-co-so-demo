@@ -345,19 +345,19 @@ class GoogleSheetsService {
 
       // Đồng bộ từng sheet với delay để tránh rate limiting
       await this.writeSheet('ThietBi', localStorageData.thietBi);
-      await this.delay(2000); // Delay 2s giữa các sheet
+      await this.delay(5000); // Delay 5s giữa các sheet
       
       await this.writeSheet('CoSoVatChat', localStorageData.coSoVatChat);
-      await this.delay(2000);
+      await this.delay(5000);
       
       await this.writeSheet('LichSuSuDung', localStorageData.lichSuSuDung);
-      await this.delay(2000);
+      await this.delay(5000);
       
       await this.writeSheet('BaoTri', localStorageData.baoTri);
-      await this.delay(2000);
+      await this.delay(5000);
       
       await this.writeSheet('ThongBao', localStorageData.thongBao);
-      await this.delay(2000);
+      await this.delay(5000);
       
       await this.writeSheet('NguoiDung', localStorageData.nguoiDung);
 
