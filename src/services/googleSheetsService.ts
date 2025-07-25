@@ -42,52 +42,53 @@ class GoogleSheetsService {
       console.log('🔍 Debug: Private key starts with:', privateKey.substring(0, 50));
       console.log('🔍 Debug: Private key ends with:', privateKey.substring(privateKey.length - 50));
 
-      // Xử lý private key - thử nhiều format
-      let cleanKey = privateKey;
+      // Xử lý private key - hỗ trợ nhiều format
+      let pemKey = privateKey;
 
-      // Loại bỏ PEM headers nếu có
+      // Nếu đã là PEM format, sử dụng trực tiếp
       if (privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
-        cleanKey = privateKey
-          .replace(/-----BEGIN PRIVATE KEY-----/, '')
-          .replace(/-----END PRIVATE KEY-----/, '')
-          .replace(/\s/g, '');
+        console.log('✅ Private key đã là PEM format');
+        pemKey = privateKey;
       }
-
-      // Loại bỏ RSA headers nếu có
-      if (privateKey.includes('-----BEGIN RSA PRIVATE KEY-----')) {
-        cleanKey = privateKey
-          .replace(/-----BEGIN RSA PRIVATE KEY-----/, '')
-          .replace(/-----END RSA PRIVATE KEY-----/, '')
-          .replace(/\s/g, '');
+      // Nếu là RSA PEM format, chuyển đổi
+      else if (privateKey.includes('-----BEGIN RSA PRIVATE KEY-----')) {
+        console.log('✅ Chuyển đổi RSA PEM sang PKCS#8');
+        pemKey = privateKey
+          .replace(/-----BEGIN RSA PRIVATE KEY-----/, '-----BEGIN PRIVATE KEY-----')
+          .replace(/-----END RSA PRIVATE KEY-----/, '-----END PRIVATE KEY-----');
       }
-
-      console.log('🔍 Debug: Clean key length:', cleanKey.length);
-
-      // Thử decode base64 với nhiều cách
-      let decodedKey: string;
-      try {
-        // Thử URL-safe base64
-        const urlSafeKey = cleanKey.replace(/-/g, '+').replace(/_/g, '/');
-        decodedKey = atob(urlSafeKey);
-        console.log('✅ Success: URL-safe base64 decode');
-      } catch (error) {
-        console.log('❌ Failed: URL-safe base64 decode, trying raw base64');
+      // Nếu là base64, chuyển đổi sang PEM
+      else {
+        console.log('✅ Chuyển đổi base64 sang PEM format');
+        let cleanKey = privateKey.replace(/\s/g, '');
+        
+        // Thử decode base64 với nhiều cách
         try {
-          // Thử raw base64
-          decodedKey = atob(cleanKey);
-          console.log('✅ Success: Raw base64 decode');
-        } catch (error2) {
-          console.log('❌ Failed: Raw base64 decode, trying with padding');
-          // Thử thêm padding
-          const paddedKey = cleanKey + '='.repeat((4 - cleanKey.length % 4) % 4);
-          decodedKey = atob(paddedKey);
-          console.log('✅ Success: Padded base64 decode');
+          // Thử URL-safe base64
+          const urlSafeKey = cleanKey.replace(/-/g, '+').replace(/_/g, '/');
+          atob(urlSafeKey); // Test decode
+          cleanKey = urlSafeKey;
+          console.log('✅ Success: URL-safe base64 decode');
+        } catch (error) {
+          console.log('❌ Failed: URL-safe base64 decode, trying raw base64');
+          try {
+            // Thử raw base64
+            atob(cleanKey); // Test decode
+            console.log('✅ Success: Raw base64 decode');
+          } catch (error2) {
+            console.log('❌ Failed: Raw base64 decode, trying with padding');
+            // Thử thêm padding
+            const paddedKey = cleanKey + '='.repeat((4 - cleanKey.length % 4) % 4);
+            atob(paddedKey); // Test decode
+            cleanKey = paddedKey;
+            console.log('✅ Success: Padded base64 decode');
+          }
         }
+        
+        pemKey = `-----BEGIN PRIVATE KEY-----\n${cleanKey}\n-----END PRIVATE KEY-----`;
       }
 
-      // Tạo PEM key
-      const pemKey = `-----BEGIN PRIVATE KEY-----\n${cleanKey}\n-----END PRIVATE KEY-----`;
-      console.log('🔍 Debug: PEM key length:', pemKey.length);
+      console.log('🔍 Debug: Final PEM key length:', pemKey.length);
       
       // Import key
       const key = await jose.importPKCS8(pemKey, 'RS256');
