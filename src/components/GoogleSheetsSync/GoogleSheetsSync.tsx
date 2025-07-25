@@ -57,6 +57,7 @@ const GoogleSheetsSync: React.FC = () => {
     checkConnection(); // Kiểm tra kết nối ngay sau khi lưu
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     checkConnection();
   }, []);

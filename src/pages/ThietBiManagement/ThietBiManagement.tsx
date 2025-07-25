@@ -63,10 +63,6 @@ const ThietBiManagement: React.FC = () => {
     navigate('/thiet-bi/new');
   };
 
-  const handleEdit = (thietBi: ThietBi) => {
-    navigate(`/thiet-bi/${thietBi.id}`);
-  };
-
   const handleView = (thietBi: ThietBi) => {
     navigate(`/thiet-bi/${thietBi.id}/view`);
   };
@@ -79,13 +75,6 @@ const ThietBiManagement: React.FC = () => {
   const handleCloseQRModal = () => {
     setQrModalOpen(false);
     setSelectedThietBi(null);
-  };
-
-  const handleDelete = (id: string) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa thiết bị này?')) {
-      thietBiService.delete(id);
-      loadThietBiList();
-    }
   };
 
   // Filter logic

@@ -1,34 +1,32 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
+  Typography,
+  Button,
   Card,
   CardContent,
-  Typography,
-  Switch,
-  FormControlLabel,
   Slider,
+  FormControl,
+  FormControlLabel,
+  Radio,
+  RadioGroup,
+  Switch,
+  Alert,
+  CircularProgress,
   Chip,
   IconButton,
-  Tooltip,
-  Alert,
-  LinearProgress,
-  Grid,
-  Paper,
-  Divider
+  Tooltip
 } from '@mui/material';
 import {
-  Sync as SyncIcon,
-  Settings as SettingsIcon,
-  Speed as SpeedIcon,
-  Storage as StorageIcon,
-  PlayArrow as PlayIcon,
-  Pause as PauseIcon,
+  CloudSync as CloudSyncIcon,
+  CloudDownload as CloudDownloadIcon,
+  CloudUpload as CloudUploadIcon,
+  CheckCircle as CheckCircleIcon,
+  Error as ErrorIcon,
   Refresh as RefreshIcon,
-  TrendingUp as TrendingUpIcon,
-  Timer as TimerIcon
+  Stop as StopIcon
 } from '@mui/icons-material';
 import { 
-  initializeGoogleServiceAccount, 
   syncDataWithServiceAccount,
   syncFromGoogleSheetsWithServiceAccount,
   syncBidirectionalWithServiceAccount
@@ -81,7 +79,7 @@ const AutoSyncManager: React.FC = () => {
   const [syncProgress, setSyncProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isAutoSyncActive, setIsAutoSyncActive] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Load config từ localStorage
   useEffect(() => {
@@ -112,29 +110,90 @@ const AutoSyncManager: React.FC = () => {
     }
   }, []);
 
-  // Save config vào localStorage và quản lý auto sync
-  useEffect(() => {
-    localStorage.setItem('autoSyncConfig', JSON.stringify(config));
-    
-    // Quản lý auto sync dựa trên config
-    if (config.enabled) {
-      startAutoSync();
-    } else {
-      stopAutoSync();
-    }
-  }, [config.enabled, config.interval]);
-
-  // Cleanup khi component unmount
-  useEffect(() => {
-    return () => stopAutoSync();
-  }, []);
-
-  const startAutoSync = () => {
+  const startAutoSync = useCallback(() => {
     // Clear existing interval trước
-    stopAutoSync();
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
     
     const syncFunction = async () => {
-      await performSync();
+      // Gọi performSync trực tiếp
+      if (isSyncing) return;
+      
+      const startTime = Date.now();
+      setIsSyncing(true);
+      setSyncProgress(0);
+      setError(null);
+      
+      try {
+        // Lấy dữ liệu từ localStorage
+        const localStorageData = {
+          thietBi: thietBiService.getAll(),
+          coSoVatChat: coSoVatChatService.getAll(),
+          lichSuSuDung: lichSuSuDungService.getAll(),
+          baoTri: baoTriService.getAll(),
+          thongBao: thongBaoService.getAll(),
+          nguoiDung: nguoiDungService.getAll()
+        };
+
+        setSyncProgress(20);
+
+        // Kiểm tra Service Account
+        const serviceAccountCredentials = localStorage.getItem('serviceAccountCredentials');
+        const serviceAccountSpreadsheetId = localStorage.getItem('serviceAccountSpreadsheetId');
+        
+        if (!serviceAccountCredentials || !serviceAccountSpreadsheetId) {
+          throw new Error('Chưa cấu hình Service Account');
+        }
+
+        setSyncProgress(40);
+
+        switch (config.mode) {
+          case 'upload':
+            await syncDataWithServiceAccount(localStorageData);
+            break;
+          case 'download':
+            await syncFromGoogleSheetsWithServiceAccount();
+            break;
+          case 'bidirectional':
+            await syncBidirectionalWithServiceAccount(localStorageData);
+            break;
+        }
+
+        setSyncProgress(80);
+
+        // Cập nhật thống kê
+        const endTime = Date.now();
+        const duration = endTime - startTime;
+        
+        setStats(prev => ({
+          ...prev,
+          totalSyncs: prev.totalSyncs + 1,
+          successfulSyncs: prev.successfulSyncs + 1,
+          averageSpeed: (prev.averageSpeed * prev.totalSyncs + duration) / (prev.totalSyncs + 1),
+          lastSyncTime: endTime,
+          lastSyncDuration: duration,
+          dataSize: JSON.stringify(localStorageData).length
+        }));
+
+        setSyncProgress(100);
+        console.log(`✅ Đồng bộ thành công trong ${duration}ms`);
+        
+      } catch (error) {
+        console.error('❌ Lỗi khi đồng bộ:', error);
+        setError(error instanceof Error ? error.message : 'Lỗi không xác định');
+        
+        // Cập nhật thống kê lỗi
+        setStats(prev => ({
+          ...prev,
+          totalSyncs: prev.totalSyncs + 1,
+          failedSyncs: prev.failedSyncs + 1
+        }));
+      } finally {
+        setIsSyncing(false);
+        setSyncProgress(0);
+      }
     };
     
     // Sync immediately nếu đã có dữ liệu
@@ -152,104 +211,38 @@ const AutoSyncManager: React.FC = () => {
     
     const intervalText = config.interval < 1 ? `${Math.round(config.interval * 60)} giây` : `${config.interval} phút`;
     console.log(`Auto sync đã được khởi động với chu kỳ ${intervalText}`);
-  };
+  }, [config.interval, config.mode, isSyncing]);
 
-  const stopAutoSync = () => {
+  const stopAutoSync = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
       setIsAutoSyncActive(false);
       console.log('Auto sync đã được dừng');
     }
-  };
+  }, []);
 
-  const performSync = async () => {
-    if (isSyncing) return;
+  // Save config vào localStorage và quản lý auto sync
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    localStorage.setItem('autoSyncConfig', JSON.stringify(config));
     
-    const startTime = Date.now();
-    setIsSyncing(true);
-    setSyncProgress(0);
-    setError(null);
-    
-    try {
-      // Lấy dữ liệu từ localStorage
-      const localStorageData = {
-        thietBi: thietBiService.getAll(),
-        coSoVatChat: coSoVatChatService.getAll(),
-        lichSuSuDung: lichSuSuDungService.getAll(),
-        baoTri: baoTriService.getAll(),
-        thongBao: thongBaoService.getAll(),
-        nguoiDung: nguoiDungService.getAll()
-      };
-
-      setSyncProgress(20);
-
-      // Kiểm tra Service Account
-      const serviceAccountCredentials = localStorage.getItem('serviceAccountCredentials');
-      const serviceAccountSpreadsheetId = localStorage.getItem('serviceAccountSpreadsheetId');
-      
-      if (!serviceAccountCredentials || !serviceAccountSpreadsheetId) {
-        throw new Error('Chưa cấu hình Service Account');
-      }
-
-      setSyncProgress(40);
-
-      let syncResult;
-      switch (config.mode) {
-        case 'upload':
-          await syncDataWithServiceAccount(localStorageData);
-          break;
-        case 'download':
-          await syncFromGoogleSheetsWithServiceAccount();
-          break;
-        case 'bidirectional':
-          await syncBidirectionalWithServiceAccount(localStorageData);
-          break;
-      }
-
-      setSyncProgress(80);
-
-      // Tính toán thống kê
-      const endTime = Date.now();
-      const duration = endTime - startTime;
-      const dataSize = JSON.stringify(localStorageData).length;
-      
-      const newStats: SyncStats = {
-        totalSyncs: stats.totalSyncs + 1,
-        successfulSyncs: stats.successfulSyncs + 1,
-        failedSyncs: stats.failedSyncs,
-        averageSpeed: stats.averageSpeed === 0 ? duration : (stats.averageSpeed + duration) / 2,
-        lastSyncTime: endTime,
-        lastSyncDuration: duration,
-        dataSize: dataSize
-      };
-      
-      setStats(newStats);
-      localStorage.setItem('autoSyncStats', JSON.stringify(newStats));
-      
-      setSyncProgress(100);
-      
-      // Reset progress sau 2 giây
-      setTimeout(() => setSyncProgress(0), 2000);
-      
-    } catch (error) {
-      const newStats: SyncStats = {
-        ...stats,
-        totalSyncs: stats.totalSyncs + 1,
-        failedSyncs: stats.failedSyncs + 1
-      };
-      setStats(newStats);
-      localStorage.setItem('autoSyncStats', JSON.stringify(newStats));
-      
-      setError(error instanceof Error ? error.message : 'Lỗi không xác định');
-      setSyncProgress(0);
-    } finally {
-      setIsSyncing(false);
+    // Quản lý auto sync dựa trên config
+    if (config.enabled) {
+      startAutoSync();
+    } else {
+      stopAutoSync();
     }
-  };
+  }, [config.enabled, config.interval]);
+
+  // Cleanup khi component unmount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    return () => stopAutoSync();
+  }, []);
 
   const handleManualSync = async () => {
-    await performSync();
+    await startAutoSync();
   };
 
   const resetStats = () => {
@@ -303,7 +296,7 @@ const AutoSyncManager: React.FC = () => {
               </Tooltip>
               <Tooltip title="Reset thống kê">
                 <IconButton onClick={resetStats} color="secondary">
-                  <TrendingUpIcon />
+                  {/* TrendingUpIcon */}
                 </IconButton>
               </Tooltip>
             </Box>
@@ -356,10 +349,10 @@ const AutoSyncManager: React.FC = () => {
         {isSyncing && (
           <Box mb={3}>
             <Box display="flex" alignItems="center" mb={1}>
-              <SyncIcon sx={{ mr: 1, animation: 'spin 1s linear infinite' }} />
+              {/* SyncIcon */}
               <Typography variant="body2">Đang đồng bộ... {syncProgress}%</Typography>
             </Box>
-            <LinearProgress variant="determinate" value={syncProgress} />
+            {/* LinearProgress */}
           </Box>
         )}
 
@@ -372,9 +365,10 @@ const AutoSyncManager: React.FC = () => {
 
                 {/* Sync Frequency - Full Width */}
         <Box sx={{ mb: 3 }}>
-          <Paper sx={{ p: 3 }}>
+          {/* Paper */}
+          <Box sx={{ p: 3 }}>
             <Box display="flex" alignItems="center" mb={3}>
-              <TimerIcon sx={{ mr: 1, fontSize: 28 }} />
+              {/* TimerIcon */}
               <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
                 Tần Suất Đồng Bộ
               </Typography>
@@ -449,147 +443,135 @@ const AutoSyncManager: React.FC = () => {
                   }}
               />
             </Box>
-          </Paper>
+          </Box>
         </Box>
 
         {/* Sync Mode & Storage Mode - Side by Side */}
-        <Grid container spacing={3} mb={3}>
+        {/* Grid */}
+        <Box sx={{ mb: 3 }}>
           {/* Sync Mode */}
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3, height: '100%' }}>
-              <Box display="flex" alignItems="center" mb={3}>
-                <SyncIcon sx={{ mr: 1, fontSize: 28 }} />
-                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  Phương Thức Đồng Bộ
-                </Typography>
-              </Box>
-              <Box display="flex" gap={2} flexWrap="wrap" justifyContent="center">
-                {[
-                  { value: 'upload', label: 'Chỉ ghi lên', color: 'success' },
-                  { value: 'download', label: 'Chỉ đọc về', color: 'info' },
-                  { value: 'bidirectional', label: 'Hai chiều', color: 'secondary' }
-                ].map((mode) => (
-                  <Chip
-                    key={mode.value}
-                    label={mode.label}
-                    color={config.mode === mode.value ? mode.color as any : 'default'}
-                    variant={config.mode === mode.value ? 'filled' : 'outlined'}
-                    onClick={() => setConfig(prev => ({ ...prev, mode: mode.value as any }))}
-                    disabled={!config.enabled}
-                    size="medium"
-                    sx={{ 
-                      fontSize: '0.9rem',
-                      fontWeight: 'bold',
-                      minWidth: '100px'
-                    }}
-                  />
-                ))}
-              </Box>
-            </Paper>
-          </Grid>
+          {/* Paper */}
+          <Box sx={{ p: 3, height: '100%' }}>
+            <Box display="flex" alignItems="center" mb={3}>
+              {/* SyncIcon */}
+              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                Phương Thức Đồng Bộ
+              </Typography>
+            </Box>
+            <Box display="flex" gap={2} flexWrap="wrap" justifyContent="center">
+              {[
+                { value: 'upload', label: 'Chỉ ghi lên', color: 'success' },
+                { value: 'download', label: 'Chỉ đọc về', color: 'info' },
+                { value: 'bidirectional', label: 'Hai chiều', color: 'secondary' }
+              ].map((mode) => (
+                <Chip
+                  key={mode.value}
+                  label={mode.label}
+                  color={config.mode === mode.value ? mode.color as any : 'default'}
+                  variant={config.mode === mode.value ? 'filled' : 'outlined'}
+                  onClick={() => setConfig(prev => ({ ...prev, mode: mode.value as any }))}
+                  disabled={!config.enabled}
+                  size="medium"
+                  sx={{ 
+                    fontSize: '0.9rem',
+                    fontWeight: 'bold',
+                    minWidth: '100px'
+                  }}
+                />
+              ))}
+            </Box>
+          </Box>
 
           {/* Storage Mode */}
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3, height: '100%' }}>
-              <Box display="flex" alignItems="center" mb={3}>
-                <StorageIcon sx={{ mr: 1, fontSize: 28 }} />
-                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  Chế Độ Lưu Trữ
-                </Typography>
-              </Box>
-              <Box display="flex" gap={2} flexWrap="wrap" justifyContent="center">
-                {[
-                  { value: 'local', label: 'Cục bộ', color: 'warning' },
-                  { value: 'cloud', label: 'Đám mây', color: 'info' },
-                  { value: 'hybrid', label: 'Kết hợp', color: 'primary' }
-                ].map((mode) => (
-                  <Chip
-                    key={mode.value}
-                    label={mode.label}
-                    color={config.storageMode === mode.value ? mode.color as any : 'default'}
-                    variant={config.storageMode === mode.value ? 'filled' : 'outlined'}
-                    onClick={() => setConfig(prev => ({ ...prev, storageMode: mode.value as any }))}
-                    disabled={!config.enabled}
-                    size="medium"
-                    sx={{ 
-                      fontSize: '0.9rem',
-                      fontWeight: 'bold',
-                      minWidth: '100px'
-                    }}
-                  />
-                ))}
-              </Box>
-            </Paper>
-          </Grid>
-        </Grid>
+          {/* Paper */}
+          <Box sx={{ p: 3, height: '100%' }}>
+            <Box display="flex" alignItems="center" mb={3}>
+              {/* StorageIcon */}
+              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                Chế Độ Lưu Trữ
+              </Typography>
+            </Box>
+            <Box display="flex" gap={2} flexWrap="wrap" justifyContent="center">
+              {[
+                { value: 'local', label: 'Cục bộ', color: 'warning' },
+                { value: 'cloud', label: 'Đám mây', color: 'info' },
+                { value: 'hybrid', label: 'Kết hợp', color: 'primary' }
+              ].map((mode) => (
+                <Chip
+                  key={mode.value}
+                  label={mode.label}
+                  color={config.storageMode === mode.value ? mode.color as any : 'default'}
+                  variant={config.storageMode === mode.value ? 'filled' : 'outlined'}
+                  onClick={() => setConfig(prev => ({ ...prev, storageMode: mode.value as any }))}
+                  disabled={!config.enabled}
+                  size="medium"
+                  sx={{ 
+                    fontSize: '0.9rem',
+                    fontWeight: 'bold',
+                    minWidth: '100px'
+                  }}
+                />
+              ))}
+            </Box>
+          </Box>
+        </Box>
 
         {/* Statistics */}
         <Box>
           <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2 }}>
             📈 Chỉ Số Hiệu Suất
           </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={6} sm={3} lg={2}>
-              <Paper sx={{ p: 2, textAlign: 'center', height: '100%' }}>
-                <Typography variant="h6" color="primary">
-                  {stats.totalSyncs}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Tổng lần đồng bộ
-                </Typography>
-              </Paper>
-            </Grid>
-            <Grid item xs={6} sm={3} lg={2}>
-              <Paper sx={{ p: 2, textAlign: 'center', height: '100%' }}>
-                <Typography variant="h6" color="success.main">
-                  {getSuccessRate()}%
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Tỷ lệ thành công
-                </Typography>
-              </Paper>
-            </Grid>
-            <Grid item xs={6} sm={3} lg={2}>
-              <Paper sx={{ p: 2, textAlign: 'center', height: '100%' }}>
-                <Typography variant="h6" color="info.main">
-                  {formatDuration(stats.averageSpeed)}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Tốc độ trung bình
-                </Typography>
-              </Paper>
-            </Grid>
-            <Grid item xs={6} sm={3} lg={2}>
-              <Paper sx={{ p: 2, textAlign: 'center', height: '100%' }}>
-                <Typography variant="h6" color="warning.main">
-                  {formatDataSize(stats.dataSize)}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Kích thước dữ liệu
-                </Typography>
-              </Paper>
-            </Grid>
-            <Grid item xs={6} sm={3} lg={2}>
-              <Paper sx={{ p: 2, textAlign: 'center', height: '100%' }}>
-                <Typography variant="h6" color="error.main">
-                  {stats.failedSyncs}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Lần thất bại
-                </Typography>
-              </Paper>
-            </Grid>
-            <Grid item xs={6} sm={3} lg={2}>
-              <Paper sx={{ p: 2, textAlign: 'center', height: '100%' }}>
-                <Typography variant="h6" color="secondary.main">
-                  {stats.successfulSyncs}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Lần thành công
-                </Typography>
-              </Paper>
-            </Grid>
-          </Grid>
+          {/* Grid */}
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+            <Box sx={{ p: 2, textAlign: 'center', height: '100%' }}>
+              <Typography variant="h6" color="primary">
+                {stats.totalSyncs}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Tổng lần đồng bộ
+              </Typography>
+            </Box>
+            <Box sx={{ p: 2, textAlign: 'center', height: '100%' }}>
+              <Typography variant="h6" color="success.main">
+                {getSuccessRate()}%
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Tỷ lệ thành công
+              </Typography>
+            </Box>
+            <Box sx={{ p: 2, textAlign: 'center', height: '100%' }}>
+              <Typography variant="h6" color="info.main">
+                {formatDuration(stats.averageSpeed)}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Tốc độ trung bình
+              </Typography>
+            </Box>
+            <Box sx={{ p: 2, textAlign: 'center', height: '100%' }}>
+              <Typography variant="h6" color="warning.main">
+                {formatDataSize(stats.dataSize)}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Kích thước dữ liệu
+              </Typography>
+            </Box>
+            <Box sx={{ p: 2, textAlign: 'center', height: '100%' }}>
+              <Typography variant="h6" color="error.main">
+                {stats.failedSyncs}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Lần thất bại
+              </Typography>
+            </Box>
+            <Box sx={{ p: 2, textAlign: 'center', height: '100%' }}>
+              <Typography variant="h6" color="secondary.main">
+                {stats.successfulSyncs}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Lần thành công
+              </Typography>
+            </Box>
+          </Box>
         </Box>
 
         {/* Last Sync Info */}

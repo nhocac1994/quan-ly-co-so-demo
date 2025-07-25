@@ -14,8 +14,7 @@ import {
   CircularProgress
 } from '@mui/material';
 import {
-  ArrowBack as ArrowBackIcon,
-  Save as SaveIcon
+  ArrowBack as ArrowBackIcon
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { thietBiService } from '../../services/localStorage';
