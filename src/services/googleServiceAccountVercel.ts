@@ -29,8 +29,22 @@ class GoogleServiceAccountVercelService {
     const expiry = now + 3600; // 1 giờ
 
     try {
+      // Xử lý private key - đảm bảo đúng định dạng PKCS#8
+      let processedPrivateKey = privateKey;
+      
+      // Nếu private key không có header PKCS#8, thêm vào
+      if (!privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
+        if (privateKey.includes('-----BEGIN RSA PRIVATE KEY-----')) {
+          // Chuyển đổi từ RSA private key sang PKCS#8
+          processedPrivateKey = this.convertRSAtoPKCS8(privateKey);
+        } else {
+          // Thêm header PKCS#8 nếu chưa có
+          processedPrivateKey = `-----BEGIN PRIVATE KEY-----\n${privateKey}\n-----END PRIVATE KEY-----`;
+        }
+      }
+
       // Import private key
-      const key = await jose.importPKCS8(privateKey, 'RS256');
+      const key = await jose.importPKCS8(processedPrivateKey, 'RS256');
 
       // Tạo JWT payload
       const payload = {
@@ -52,6 +66,47 @@ class GoogleServiceAccountVercelService {
     } catch (error) {
       console.error('Lỗi khi tạo JWT:', error);
       throw new Error('Không thể tạo JWT token');
+    }
+  }
+
+  // Chuyển đổi RSA private key sang PKCS#8 format
+  private convertRSAtoPKCS8(rsaPrivateKey: string): string {
+    try {
+      // Loại bỏ header và footer RSA
+      const keyContent = rsaPrivateKey
+        .replace(/-----BEGIN RSA PRIVATE KEY-----/, '')
+        .replace(/-----END RSA PRIVATE KEY-----/, '')
+        .replace(/\s/g, '');
+
+      // Decode base64
+      const binaryString = atob(keyContent);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      // Tạo PKCS#8 header
+      const pkcs8Header = new Uint8Array([
+        0x30, 0x82, 0x04, 0x22, 0x02, 0x01, 0x00, 0x30,
+        0x0d, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7,
+        0x0d, 0x01, 0x01, 0x01, 0x05, 0x00, 0x04, 0x82,
+        0x04, 0x0c
+      ]);
+
+      // Kết hợp header và key content
+      const pkcs8Key = new Uint8Array(pkcs8Header.length + bytes.length);
+      pkcs8Key.set(pkcs8Header);
+      pkcs8Key.set(bytes, pkcs8Header.length);
+
+      // Encode base64 và format
+      const base64Key = btoa(String.fromCharCode.apply(null, Array.from(pkcs8Key)));
+      const formattedKey = base64Key.match(/.{1,64}/g)?.join('\n') || base64Key;
+
+      return `-----BEGIN PRIVATE KEY-----\n${formattedKey}\n-----END PRIVATE KEY-----`;
+    } catch (error) {
+      console.error('Lỗi khi chuyển đổi RSA key:', error);
+      // Fallback: thử với format gốc
+      return `-----BEGIN PRIVATE KEY-----\n${rsaPrivateKey}\n-----END PRIVATE KEY-----`;
     }
   }
 
