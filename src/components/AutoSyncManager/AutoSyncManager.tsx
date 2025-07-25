@@ -1,20 +1,37 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Typography,
   Card,
   CardContent,
-  Slider,
-  FormControlLabel,
   Switch,
-  Alert,
+  FormControlLabel,
+  Slider,
+  Radio,
+  RadioGroup,
+  FormControl,
+  FormLabel,
   Chip,
-  IconButton,
-  Tooltip
+  Alert,
+  Button,
+  Grid,
+  Paper,
+  Divider
 } from '@mui/material';
 import {
-  Refresh as RefreshIcon
+  PlayArrow as PlayIcon,
+  Pause as PauseIcon,
+  Refresh as RefreshIcon,
+  TrendingUp as TrendingUpIcon,
+  Timer as TimerIcon,
+  CloudSync as CloudSyncIcon,
+  CloudDownload as CloudDownloadIcon,
+  CloudUpload as CloudUploadIcon,
+  CheckCircle as CheckCircleIcon,
+  Error as ErrorIcon,
+  Stop as StopIcon
 } from '@mui/icons-material';
+import { useAutoSync } from '../../contexts/AutoSyncContext';
 import { 
   syncDataWithServiceAccount,
   syncFromGoogleSheetsWithServiceAccount,
@@ -47,12 +64,7 @@ interface AutoSyncConfig {
 }
 
 const AutoSyncManager: React.FC = () => {
-  const [config, setConfig] = useState<AutoSyncConfig>({
-    enabled: true,
-    interval: 1, // 1 phút mặc định để tránh rate limiting
-    mode: 'bidirectional',
-    storageMode: 'hybrid'
-  });
+  const { config, status, updateConfig, startAutoSync, stopAutoSync, performManualSync, resetStats } = useAutoSync();
   
   const [stats, setStats] = useState<SyncStats>({
     totalSyncs: 0,
@@ -67,176 +79,95 @@ const AutoSyncManager: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [isAutoSyncActive, setIsAutoSyncActive] = useState(false);
   const intervalRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Load config và stats từ localStorage
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
+  React.useEffect(() => {
     const savedConfig = localStorage.getItem('autoSyncConfig');
     if (savedConfig) {
-      const parsedConfig = JSON.parse(savedConfig);
-      setConfig(parsedConfig);
-      
-      // Nếu config đã được bật trước đó, khởi động lại auto sync
-      if (parsedConfig.enabled) {
-        // Delay một chút để đảm bảo component đã mount hoàn toàn
-        setTimeout(() => {
-          startAutoSync();
-        }, 100);
-      } else {
-        setIsAutoSyncActive(false);
+      try {
+        const parsedConfig = JSON.parse(savedConfig);
+        // Cập nhật config thông qua context
+        updateConfig(parsedConfig);
+      } catch (error) {
+        console.error('Lỗi khi parse auto sync config:', error);
       }
-    } else {
-      // Nếu chưa có config được lưu, sử dụng config mặc định và khởi động auto sync
-      setTimeout(() => {
-        startAutoSync();
-      }, 100);
     }
-    
+
     const savedStats = localStorage.getItem('autoSyncStats');
     if (savedStats) {
-      setStats(JSON.parse(savedStats));
+      try {
+        const parsedStats = JSON.parse(savedStats);
+        setStats(parsedStats);
+      } catch (error) {
+        console.error('Lỗi khi parse auto sync stats:', error);
+      }
     }
   }, []);
 
-  const startAutoSync = useCallback(() => {
-    // Clear existing interval trước
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
+  // Save stats vào localStorage
+  React.useEffect(() => {
+    localStorage.setItem('autoSyncStats', JSON.stringify(stats));
+  }, [stats]);
+
+  const handleManualSync = async () => {
+    if (isSyncing) return;
     
-    const syncFunction = async () => {
-      // Gọi performSync trực tiếp
-      if (isSyncing) return;
-      
+    setIsSyncing(true);
+    setSyncProgress(0);
+    setError(null);
+    
+    try {
       const startTime = Date.now();
-      setIsSyncing(true);
-      setSyncProgress(0);
-      setError(null);
+      setSyncProgress(20);
       
-      try {
-        // Lấy dữ liệu từ localStorage
-        const localStorageData = {
+      // Sử dụng performManualSync từ context
+      await performManualSync();
+      
+      setSyncProgress(80);
+      
+      // Cập nhật thống kê
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      
+      setStats((prev: SyncStats) => ({
+        ...prev,
+        totalSyncs: prev.totalSyncs + 1,
+        successfulSyncs: prev.successfulSyncs + 1,
+        averageSpeed: (prev.averageSpeed * prev.totalSyncs + duration) / (prev.totalSyncs + 1),
+        lastSyncTime: endTime,
+        lastSyncDuration: duration,
+        dataSize: JSON.stringify({
           thietBi: thietBiService.getAll(),
           coSoVatChat: coSoVatChatService.getAll(),
           lichSuSuDung: lichSuSuDungService.getAll(),
           baoTri: baoTriService.getAll(),
           thongBao: thongBaoService.getAll(),
           nguoiDung: nguoiDungService.getAll()
-        };
-
-        setSyncProgress(20);
-
-        // Kiểm tra Service Account
-        const serviceAccountCredentials = localStorage.getItem('serviceAccountCredentials');
-        const serviceAccountSpreadsheetId = localStorage.getItem('serviceAccountSpreadsheetId');
-        
-        if (!serviceAccountCredentials || !serviceAccountSpreadsheetId) {
-          throw new Error('Chưa cấu hình Service Account');
-        }
-
-        setSyncProgress(40);
-
-        switch (config.mode) {
-          case 'upload':
-            await syncDataWithServiceAccount(localStorageData);
-            break;
-          case 'download':
-            await syncFromGoogleSheetsWithServiceAccount();
-            break;
-          case 'bidirectional':
-            await syncBidirectionalWithServiceAccount(localStorageData);
-            break;
-        }
-
-        setSyncProgress(80);
-
-        // Cập nhật thống kê
-        const endTime = Date.now();
-        const duration = endTime - startTime;
-        
-        setStats(prev => ({
-          ...prev,
-          totalSyncs: prev.totalSyncs + 1,
-          successfulSyncs: prev.successfulSyncs + 1,
-          averageSpeed: (prev.averageSpeed * prev.totalSyncs + duration) / (prev.totalSyncs + 1),
-          lastSyncTime: endTime,
-          lastSyncDuration: duration,
-          dataSize: JSON.stringify(localStorageData).length
-        }));
-
-        setSyncProgress(100);
-        console.log(`✅ Đồng bộ thành công trong ${duration}ms`);
-        
-      } catch (error) {
-        console.error('❌ Lỗi khi đồng bộ:', error);
-        setError(error instanceof Error ? error.message : 'Lỗi không xác định');
-        
-        // Cập nhật thống kê lỗi
-        setStats(prev => ({
-          ...prev,
-          totalSyncs: prev.totalSyncs + 1,
-          failedSyncs: prev.failedSyncs + 1
-        }));
-      } finally {
-        setIsSyncing(false);
-        setSyncProgress(0);
-      }
-    };
-    
-    // Sync immediately nếu đã có dữ liệu
-    const hasData = localStorage.getItem('thietBi') || 
-                   localStorage.getItem('coSoVatChat') || 
-                   localStorage.getItem('lichSuSuDung');
-    
-    if (hasData) {
-      syncFunction();
+        }).length
+      }));
+      
+      setSyncProgress(100);
+      console.log(`✅ Đồng bộ thủ công thành công trong ${duration}ms`);
+      
+    } catch (error) {
+      console.error('❌ Lỗi khi đồng bộ thủ công:', error);
+      setError(error instanceof Error ? error.message : 'Lỗi không xác định');
+      
+      setStats((prev: SyncStats) => ({
+        ...prev,
+        totalSyncs: prev.totalSyncs + 1,
+        failedSyncs: prev.failedSyncs + 1
+      }));
+    } finally {
+      setIsSyncing(false);
+      setSyncProgress(0);
     }
-    
-    // Set interval mới
-    intervalRef.current = setInterval(syncFunction, config.interval * 60 * 1000);
-    setIsAutoSyncActive(true);
-    
-    const intervalText = config.interval < 1 ? `${Math.round(config.interval * 60)} giây` : `${config.interval} phút`;
-    console.log(`Auto sync đã được khởi động với chu kỳ ${intervalText}`);
-  }, [config.interval, config.mode, isSyncing]);
-
-  const stopAutoSync = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-      setIsAutoSyncActive(false);
-      console.log('Auto sync đã được dừng');
-    }
-  }, []);
-
-  // Save config vào localStorage và quản lý auto sync
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    localStorage.setItem('autoSyncConfig', JSON.stringify(config));
-    
-    // Quản lý auto sync dựa trên config
-    if (config.enabled) {
-      startAutoSync();
-    } else {
-      stopAutoSync();
-    }
-  }, [config.enabled, config.interval]);
-
-  // Cleanup khi component unmount
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    return () => stopAutoSync();
-  }, []);
-
-  const handleManualSync = async () => {
-    await startAutoSync();
   };
 
-  const resetStats = () => {
-    const newStats: SyncStats = {
+  const handleResetStats = () => {
+    setStats({
       totalSyncs: 0,
       successfulSyncs: 0,
       failedSyncs: 0,
@@ -244,10 +175,15 @@ const AutoSyncManager: React.FC = () => {
       lastSyncTime: 0,
       lastSyncDuration: 0,
       dataSize: 0
-    };
-    setStats(newStats);
-    localStorage.setItem('autoSyncStats', JSON.stringify(newStats));
+    });
+    resetStats();
   };
+
+  // Cleanup khi component unmount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  React.useEffect(() => {
+    return () => stopAutoSync();
+  }, []);
 
   const formatDuration = (ms: number): string => {
     if (ms < 1000) return `${ms}ms`;
@@ -275,20 +211,17 @@ const AutoSyncManager: React.FC = () => {
               🔄 Cài Đặt Đồng Bộ
             </Typography>
             <Box display="flex" gap={1}>
-              <Tooltip title="Đồng bộ thủ công">
-                <IconButton 
-                  onClick={handleManualSync} 
-                  disabled={isSyncing}
-                  color="primary"
-                >
-                  <RefreshIcon />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Reset thống kê">
-                <IconButton onClick={resetStats} color="secondary">
-                  {/* TrendingUpIcon */}
-                </IconButton>
-              </Tooltip>
+              <Button 
+                onClick={handleManualSync} 
+                disabled={isSyncing}
+                variant="contained"
+                startIcon={<RefreshIcon />}
+              >
+                Đồng bộ thủ công
+              </Button>
+              <Button onClick={handleResetStats} variant="outlined" startIcon={<TrendingUpIcon />}>
+                Reset thống kê
+              </Button>
             </Box>
           </Box>
 
@@ -304,20 +237,20 @@ const AutoSyncManager: React.FC = () => {
                   <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                {config.enabled && isAutoSyncActive 
+                {config.isEnabled && status.isConnected 
                   ? '🟢 Đồng bộ tự động đang hoạt động' 
-                  : config.enabled 
+                  : config.isEnabled 
                     ? '🟡 Đồng bộ tự động đang khởi động...' 
                     : '🔴 Đồng bộ tự động đã tắt'
                 }
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {config.enabled 
+                {config.isEnabled 
                   ? `Tự động đồng bộ mỗi ${config.interval < 1 ? Math.round(config.interval * 60) + ' giây' : config.interval + ' phút'}` 
                   : 'Bật để kích hoạt đồng bộ tự động'
                 }
               </Typography>
-              {config.enabled && isAutoSyncActive && (
+              {config.isEnabled && status.isConnected && (
                 <Typography variant="body2" color="success.main" sx={{ mt: 0.5 }}>
                   ✅ Đã kết nối và sẵn sàng đồng bộ
                 </Typography>
@@ -326,8 +259,8 @@ const AutoSyncManager: React.FC = () => {
             <FormControlLabel
               control={
                 <Switch
-                  checked={config.enabled}
-                  onChange={(e) => setConfig(prev => ({ ...prev, enabled: e.target.checked }))}
+                  checked={config.isEnabled}
+                  onChange={(e) => updateConfig({ isEnabled: e.target.checked })}
                   color="primary"
                 />
               }
@@ -372,25 +305,25 @@ const AutoSyncManager: React.FC = () => {
               </Typography>
             </Box>
             <Box sx={{ px: 4, py: 3 }}>
-              <Slider
-                value={config.interval}
-                onChange={(_, value) => setConfig(prev => ({ ...prev, interval: value as number }))}
-                min={0.25}
-                max={60}
-                step={null}
-                marks={[
-                  { value: 0.25, label: '15s' },
-                  { value: 1, label: '1m' },
-                  { value: 5, label: '5m' },
-                  { value: 15, label: '15m' },
-                  { value: 30, label: '30m' },
-                  { value: 60, label: '1h' }
-                ]}
-                valueLabelDisplay="auto"
-                valueLabelFormat={(value) => 
-                  value < 1 ? `${Math.round(value * 60)}s` : `${value}m`
-                }
-                disabled={!config.enabled}
+                              <Slider
+                  value={config.interval}
+                  onChange={(_, value) => updateConfig({ interval: value as number })}
+                  min={0.25}
+                  max={60}
+                  step={null}
+                  marks={[
+                    { value: 0.25, label: '15s' },
+                    { value: 1, label: '1m' },
+                    { value: 5, label: '5m' },
+                    { value: 15, label: '15m' },
+                    { value: 30, label: '30m' },
+                    { value: 60, label: '1h' }
+                  ]}
+                  valueLabelDisplay="auto"
+                  valueLabelFormat={(value) => 
+                    value < 1 ? `${Math.round(value * 60)}s` : `${value}m`
+                  }
+                  disabled={!config.isEnabled}
                                   sx={{
                     '& .MuiSlider-markLabel': {
                       fontSize: '0.7rem',
@@ -459,8 +392,8 @@ const AutoSyncManager: React.FC = () => {
                   label={mode.label}
                   color={config.mode === mode.value ? mode.color as any : 'default'}
                   variant={config.mode === mode.value ? 'filled' : 'outlined'}
-                  onClick={() => setConfig(prev => ({ ...prev, mode: mode.value as any }))}
-                  disabled={!config.enabled}
+                  onClick={() => updateConfig({ mode: mode.value as any })}
+                  disabled={!config.isEnabled}
                   size="medium"
                   sx={{ 
                     fontSize: '0.9rem',
@@ -492,8 +425,8 @@ const AutoSyncManager: React.FC = () => {
                   label={mode.label}
                   color={config.storageMode === mode.value ? mode.color as any : 'default'}
                   variant={config.storageMode === mode.value ? 'filled' : 'outlined'}
-                  onClick={() => setConfig(prev => ({ ...prev, storageMode: mode.value as any }))}
-                  disabled={!config.enabled}
+                  onClick={() => updateConfig({ storageMode: mode.value as any })}
+                  disabled={!config.isEnabled}
                   size="medium"
                   sx={{ 
                     fontSize: '0.9rem',

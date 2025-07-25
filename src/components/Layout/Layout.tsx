@@ -35,6 +35,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import AutoSyncStatus from '../AutoSyncStatus/AutoSyncStatus';
 
 const drawerWidth = 240;
 const collapsedDrawerWidth = 64;
@@ -261,52 +262,31 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           >
             <MenuIcon />
           </IconButton>
-          <Typography 
-            variant="h6" 
-            noWrap 
-            component="div" 
-            sx={{ 
-              flexGrow: 1,
-              fontWeight: 600,
-              color: 'text.primary'
-            }}
-          >
-            {menuItems.find((item: any) => item.path === location.pathname)?.text || 'Quản Lý Cơ Sở Vật Chất'}
+          
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
+            Quản Lý Cơ Sở Vật Chất
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {user && (
-              <>
-                <Chip
-                  label={user.vaiTro === 'quanTriVien' ? '👨‍💼 Quản Trị' : 
-                         user.vaiTro === 'giaoVien' ? '👨‍🏫 Giáo Viên' : '👨‍🎓 Học Sinh'}
-                  color="primary"
-                  size="small"
-                  variant="outlined"
-                />
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    color: 'text.secondary',
-                    fontWeight: 500
-                  }}
-                >
-                  {user.hoTen}
-                </Typography>
-              </>
-            )}
+
+          {/* Auto Sync Status */}
+          <Box sx={{ mr: 2 }}>
+            <AutoSyncStatus />
+          </Box>
+
+          {/* User Menu */}
+          <Box display="flex" alignItems="center" gap={1}>
+            <Chip
+              label={user?.vaiTro || 'User'}
+              size="small"
+              color="primary"
+              variant="outlined"
+            />
             <IconButton
               size="large"
-              edge="end"
               aria-label="account of current user"
-              aria-controls="primary-search-account-menu"
+              aria-controls="menu-appbar"
               aria-haspopup="true"
               onClick={handleProfileMenuOpen}
-              color="primary"
-              sx={{
-                '&:hover': {
-                  backgroundColor: 'rgba(25, 118, 210, 0.08)',
-                }
-              }}
+              color="inherit"
             >
               <AccountCircle />
             </IconButton>

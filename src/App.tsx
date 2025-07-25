@@ -20,6 +20,7 @@ import PageTransition from './components/PageTransition/PageTransition';
 import OAuthCallback from './components/OAuthCallback/OAuthCallback';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AutoSyncProvider } from './contexts/AutoSyncContext';
 import { initializeSampleUsers } from './data/sampleUsers';
 
 // Tạo theme Material-UI
@@ -147,11 +148,13 @@ const App: React.FC = () => {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <AuthProvider>
-          <Router>
-            <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-              <AppContent />
-            </Box>
-          </Router>
+          <AutoSyncProvider>
+            <Router>
+              <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+                <AppContent />
+              </Box>
+            </Router>
+          </AutoSyncProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
