@@ -5,25 +5,22 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  Typography,
   Box,
+  Typography,
   Alert,
-  Divider,
+  Paper,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
-  Paper,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem
+  Divider,
+  Chip
 } from '@mui/material';
 import {
   BugReport as BugReportIcon,
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
+  Refresh as RefreshIcon,
   Info as InfoIcon,
   Warning as WarningIcon
 } from '@mui/icons-material';

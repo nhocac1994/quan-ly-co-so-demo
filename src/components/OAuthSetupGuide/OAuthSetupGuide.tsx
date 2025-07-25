@@ -17,10 +17,9 @@ import {
   Paper
 } from '@mui/material';
 import {
-  CheckCircle as CheckCircleIcon,
   Info as InfoIcon,
-  Warning as WarningIcon,
-  Link as LinkIcon
+  CheckCircle as CheckCircleIcon,
+  Error as ErrorIcon
 } from '@mui/icons-material';
 
 interface OAuthSetupGuideProps {

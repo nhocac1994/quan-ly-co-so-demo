@@ -70,7 +70,7 @@ const AutoSyncManager: React.FC = () => {
   const [isAutoSyncActive, setIsAutoSyncActive] = useState(false);
   const intervalRef = React.useRef<NodeJS.Timeout | null>(null);
 
-  // Load config từ localStorage
+  // Load config và stats từ localStorage
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const savedConfig = localStorage.getItem('autoSyncConfig');

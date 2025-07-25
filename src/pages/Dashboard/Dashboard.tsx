@@ -11,8 +11,6 @@ import {
   ListItemText,
   ListItemIcon,
   Chip,
-  IconButton,
-  Tooltip,
   CircularProgress,
   Button
 } from '@mui/material';
@@ -20,23 +18,17 @@ import {
   Devices as DevicesIcon,
   Business as BusinessIcon,
   History as HistoryIcon,
-  Notifications as NotificationsIcon,
-  TrendingUp as TrendingUpIcon,
-  TrendingDown as TrendingDownIcon,
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
-  Warning as WarningIcon,
-  Info as InfoIcon,
-  Refresh as RefreshIcon
+  Warning as WarningIcon
 } from '@mui/icons-material';
 import { 
   thietBiService, 
   coSoVatChatService, 
   lichSuSuDungService, 
-  baoTriService, 
-  thongBaoService 
+  baoTriService
 } from '../../services/localStorage';
-import { ThietBi, CoSoVatChat, LichSuSuDung, BaoTri } from '../../types';
+import { LichSuSuDung, BaoTri } from '../../types';
 import { createSampleData } from '../../utils/sampleData';
 
 

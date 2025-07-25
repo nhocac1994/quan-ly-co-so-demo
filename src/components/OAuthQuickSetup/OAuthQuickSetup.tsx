@@ -16,11 +16,9 @@ import {
   Paper
 } from '@mui/material';
 import {
+  CloudUpload as CloudUploadIcon,
   CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
-  Info as InfoIcon,
-  Warning as WarningIcon,
-  Settings as SettingsIcon
+  Info as InfoIcon
 } from '@mui/icons-material';
 import { initializeGoogleOAuth } from '../../services/googleOAuth';
 
@@ -72,7 +70,7 @@ const OAuthQuickSetup: React.FC<OAuthQuickSetupProps> = ({ open, onClose, onSucc
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
         <Box display="flex" alignItems="center" gap={1}>
-          <SettingsIcon color="primary" />
+          <CloudUploadIcon color="primary" />
           Cấu Hình Nhanh OAuth 2.0
         </Box>
       </DialogTitle>
@@ -190,7 +188,7 @@ const OAuthQuickSetup: React.FC<OAuthQuickSetupProps> = ({ open, onClose, onSucc
           onClick={handleQuickSetup} 
           variant="contained" 
           disabled={isConfiguring}
-          startIcon={<SettingsIcon />}
+          startIcon={<CloudUploadIcon />}
         >
           {isConfiguring ? 'Đang cấu hình...' : 'Cấu Hình Ngay'}
         </Button>
