@@ -33,8 +33,8 @@ class SyncEventService {
       this.syncQueue = this.syncQueue.slice(-this.MAX_QUEUE_SIZE);
     }
 
-    // Schedule sync
-    this.scheduleSync();
+    // Không tự động schedule sync - chỉ queue events
+    // this.scheduleSync();
   }
 
   // Lên lịch sync với delay

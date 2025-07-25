@@ -60,7 +60,7 @@ const getConfigFromStorage = (): AutoSyncConfig => {
   
   // Default config - simplified
   return {
-    isEnabled: true,
+    isEnabled: false, // Tắt auto sync mặc định
     interval: 5, // 5 giây
     storageMode: 'hybrid'
   };
@@ -84,6 +84,11 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Kiểm tra kết nối Google Sheets
   const checkConnection = useCallback(async (): Promise<boolean> => {
+    // Nếu đã check rồi thì không check nữa
+    if (status.isConnected || status.error) {
+      return status.isConnected;
+    }
+
     try {
       const spreadsheetId = process.env.REACT_APP_GOOGLE_SPREADSHEET_ID;
       const clientEmail = process.env.REACT_APP_GOOGLE_SERVICE_ACCOUNT_EMAIL;
@@ -116,7 +121,7 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }));
       return false;
     }
-  }, []);
+  }, [status.isConnected, status.error]);
 
   // Cập nhật trạng thái từ sync event service
   const updateStatusFromEventService = useCallback(() => {
@@ -241,18 +246,11 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (!isInitializedRef.current) {
       isInitializedRef.current = true;
       
-      // Kiểm tra kết nối ban đầu (chỉ 1 lần)
-      checkConnection();
-      
-      // Bắt đầu auto-sync nếu được enable
-      if (config.isEnabled) {
-        startAutoSync();
-      }
-
-      // Thiết lập interval để cập nhật trạng thái từ event service
-      statusUpdateIntervalRef.current = setInterval(updateStatusFromEventService, 2000); // Tăng lên 2 giây
+      // Không tự động check connection và start auto sync
+      // Chỉ thiết lập interval để cập nhật trạng thái từ event service
+      statusUpdateIntervalRef.current = setInterval(updateStatusFromEventService, 5000); // Tăng lên 5 giây
     }
-  }, [checkConnection, config.isEnabled, startAutoSync, updateStatusFromEventService]);
+  }, [updateStatusFromEventService]);
 
   // Cleanup khi unmount
   useEffect(() => {
@@ -265,17 +263,6 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     };
   }, []);
-
-  // Restart auto-sync khi config thay đổi
-  useEffect(() => {
-    if (isInitializedRef.current) {
-      if (config.isEnabled) {
-        startAutoSync();
-      } else {
-        stopAutoSync();
-      }
-    }
-  }, [config.isEnabled, config.interval, startAutoSync, stopAutoSync]);
 
   const value: AutoSyncContextType = {
     config,

@@ -23,6 +23,7 @@ const AutoSyncStatus: React.FC = () => {
     if (status.error) return 'error';
     if (status.isProcessing || status.isRunning) return 'warning';
     if (status.isConnected) return 'success';
+    if (!config.isEnabled) return 'default';
     return 'default';
   };
 
@@ -38,6 +39,7 @@ const AutoSyncStatus: React.FC = () => {
     if (status.isRunning) return 'Auto sync';
     if (status.error) return 'Lỗi kết nối';
     if (status.isConnected) return 'Đã kết nối';
+    if (!config.isEnabled) return 'Tắt auto sync';
     return 'Chưa kết nối';
   };
 
