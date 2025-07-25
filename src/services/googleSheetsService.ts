@@ -235,42 +235,104 @@ class GoogleSheetsService {
     }
   }
 
-  // Ghi dữ liệu vào sheet
-  async writeSheet(sheetName: string, values: any[][]): Promise<void> {
-    try {
-      if (!this.config) {
-        throw new Error('Chưa khởi tạo service');
-      }
+  // Ghi dữ liệu vào Google Sheets với retry logic
+  async writeSheet(sheetName: string, data: any[]): Promise<void> {
+    const maxRetries = 5;
+    let lastError: Error | null = null;
 
-      const accessToken = await this.getAccessToken();
-      const response = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${this.config.spreadsheetId}/values/${sheetName}!A1?valueInputOption=RAW`,
-        {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            values: values
-          })
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const accessToken = await this.getAccessToken();
+        
+        // Xóa dữ liệu cũ
+        const clearResponse = await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${this.config?.spreadsheetId}/values/${sheetName}!A:Z:clear`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (clearResponse.status === 429) {
+          // Rate limiting - wait with exponential backoff
+          const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 30000); // Max 30s
+          console.log(`Rate limited (429), waiting ${waitTime}ms before retry ${attempt}/${maxRetries}`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue;
         }
-      );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Lỗi ghi sheet: ${response.status} ${response.statusText} - ${errorText}`);
+        if (!clearResponse.ok) {
+          throw new Error(`Lỗi xóa sheet: ${clearResponse.status}`);
+        }
+
+        // Nếu có dữ liệu, ghi dữ liệu mới
+        if (data.length > 0) {
+          // Chuyển đổi dữ liệu sang format sheet
+          const sheetData = this.convertDataToSheetFormat(data);
+          
+          // Ghi dữ liệu theo batch để tránh rate limiting
+          const batchSize = 10; // Ghi 10 rows mỗi lần
+          for (let i = 0; i < sheetData.length; i += batchSize) {
+            const batch = sheetData.slice(i, i + batchSize);
+            const range = `${sheetName}!A${i + 1}:Z${i + batch.length}`;
+            
+            const writeResponse = await fetch(
+              `https://sheets.googleapis.com/v4/spreadsheets/${this.config?.spreadsheetId}/values/${range}?valueInputOption=RAW`,
+              {
+                method: 'PUT',
+                headers: {
+                  'Authorization': `Bearer ${accessToken}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  values: batch
+                })
+              }
+            );
+
+            if (writeResponse.status === 429) {
+              // Rate limiting - wait with exponential backoff
+              const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 30000);
+              console.log(`Rate limited (429) writing batch ${i}-${i + batch.length}, waiting ${waitTime}ms`);
+              await new Promise(resolve => setTimeout(resolve, waitTime));
+              i -= batchSize; // Retry batch này
+              continue;
+            }
+
+            if (!writeResponse.ok) {
+              throw new Error(`Lỗi ghi batch: ${writeResponse.status}`);
+            }
+
+            // Delay nhỏ giữa các batch để tránh rate limiting
+            if (i + batchSize < sheetData.length) {
+              await new Promise(resolve => setTimeout(resolve, 1000)); // 1s delay
+            }
+          }
+        }
+
+        console.log(`✅ Ghi dữ liệu thành công vào sheet ${sheetName}`);
+        return;
+      } catch (error) {
+        lastError = error as Error;
+        console.error(`❌ Lỗi ghi sheet ${sheetName} (attempt ${attempt}/${maxRetries}):`, error);
+        
+        if (attempt < maxRetries) {
+          // Wait before retry với exponential backoff
+          const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 30000);
+          console.log(`⏳ Waiting ${waitTime}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
       }
-
-      console.log(`✅ Ghi thành công sheet ${sheetName}:`, values.length, 'rows');
-    } catch (error) {
-      console.error(`❌ Lỗi ghi sheet ${sheetName}:`, error);
-      throw new Error(`Không thể ghi dữ liệu vào sheet ${sheetName}`);
     }
+
+    throw new Error(`Không thể ghi dữ liệu vào sheet ${sheetName}: ${lastError?.message}`);
   }
 
   // Đồng bộ tất cả dữ liệu
-  async syncAllData(data: {
+  async syncAllData(localStorageData: {
     thietBi: any[];
     coSoVatChat: any[];
     lichSuSuDung: any[];
@@ -279,34 +341,35 @@ class GoogleSheetsService {
     nguoiDung: any[];
   }): Promise<void> {
     try {
-      console.log('🔄 Bắt đầu đồng bộ dữ liệu...');
+      console.log('🔄 Bắt đầu đồng bộ tất cả dữ liệu...');
 
-      const sheets = [
-        { name: 'ThietBi', data: data.thietBi },
-        { name: 'CoSoVatChat', data: data.coSoVatChat },
-        { name: 'LichSuSuDung', data: data.lichSuSuDung },
-        { name: 'BaoTri', data: data.baoTri },
-        { name: 'ThongBao', data: data.thongBao },
-        { name: 'NguoiDung', data: data.nguoiDung }
-      ];
-
-      for (const sheet of sheets) {
-        const sheetData = this.convertToSheetFormat(sheet.data);
-        await this.writeSheet(sheet.name, sheetData);
-        
-        // Delay nhỏ giữa các sheet để tránh rate limiting
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
+      // Đồng bộ từng sheet với delay để tránh rate limiting
+      await this.writeSheet('ThietBi', localStorageData.thietBi);
+      await this.delay(2000); // Delay 2s giữa các sheet
+      
+      await this.writeSheet('CoSoVatChat', localStorageData.coSoVatChat);
+      await this.delay(2000);
+      
+      await this.writeSheet('LichSuSuDung', localStorageData.lichSuSuDung);
+      await this.delay(2000);
+      
+      await this.writeSheet('BaoTri', localStorageData.baoTri);
+      await this.delay(2000);
+      
+      await this.writeSheet('ThongBao', localStorageData.thongBao);
+      await this.delay(2000);
+      
+      await this.writeSheet('NguoiDung', localStorageData.nguoiDung);
 
       console.log('✅ Đồng bộ tất cả dữ liệu thành công!');
     } catch (error) {
       console.error('❌ Lỗi đồng bộ dữ liệu:', error);
-      throw new Error('Lỗi đồng bộ dữ liệu');
+      throw error;
     }
   }
 
-  // Chuyển đổi dữ liệu sang format sheet
-  private convertToSheetFormat(data: any[]): any[][] {
+  // Chuyển đổi dữ liệu sang format sheet (để ghi theo batch)
+  private convertDataToSheetFormat(data: any[]): any[][] {
     if (data.length === 0) return [];
     
     const headers = Object.keys(data[0]);
@@ -324,6 +387,11 @@ class GoogleSheetsService {
     });
     
     return sheetData;
+  }
+
+  // Helper function to add a delay
+  private async delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }
 
