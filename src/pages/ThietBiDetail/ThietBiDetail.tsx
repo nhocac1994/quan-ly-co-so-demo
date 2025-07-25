@@ -130,7 +130,7 @@ const ThietBiDetail: React.FC = () => {
 
       if (isAddMode) {
         // Thêm thiết bị mới
-        thietBiService.add(thietBiData as Omit<ThietBi, 'id' | 'ngayNhap' | 'ngayCapNhat'>);
+        thietBiService.add(thietBiData as Omit<ThietBi, 'id'>);
         setSuccessMessage('Thêm thiết bị mới thành công!');
       } else if (isEditMode && id) {
         // Cập nhật thiết bị

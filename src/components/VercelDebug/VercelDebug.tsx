@@ -1,14 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Typography,
   Card,
   CardContent,
   Button,
-  Alert,
   CircularProgress,
   Chip,
-  Divider,
   Paper,
   List,
   ListItem,
@@ -17,11 +15,7 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem
+  TextField
 } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
@@ -34,17 +28,8 @@ import {
   ContentCopy as CopyIcon
 } from '@mui/icons-material';
 import { 
-  initializeGoogleServiceAccountVercel, 
-  syncDataWithServiceAccountVercel 
+  initializeGoogleServiceAccountVercel
 } from '../../services/googleServiceAccountVercel';
-import { 
-  thietBiService, 
-  coSoVatChatService, 
-  lichSuSuDungService, 
-  baoTriService, 
-  thongBaoService, 
-  nguoiDungService 
-} from '../../services/localStorage';
 
 interface DebugStep {
   name: string;

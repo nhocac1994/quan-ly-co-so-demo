@@ -7,36 +7,15 @@ import {
   Switch,
   FormControlLabel,
   Slider,
-  Radio,
-  RadioGroup,
-  FormControl,
-  FormLabel,
   Chip,
   Alert,
-  Button,
-  Grid,
-  Paper,
-  Divider
+  Button
 } from '@mui/material';
 import {
-  PlayArrow as PlayIcon,
-  Pause as PauseIcon,
   Refresh as RefreshIcon,
-  TrendingUp as TrendingUpIcon,
-  Timer as TimerIcon,
-  CloudSync as CloudSyncIcon,
-  CloudDownload as CloudDownloadIcon,
-  CloudUpload as CloudUploadIcon,
-  CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
-  Stop as StopIcon
+  TrendingUp as TrendingUpIcon
 } from '@mui/icons-material';
 import { useAutoSync } from '../../contexts/AutoSyncContext';
-import { 
-  syncDataWithServiceAccount,
-  syncFromGoogleSheetsWithServiceAccount,
-  syncBidirectionalWithServiceAccount
-} from '../../services/googleServiceAccount';
 import { 
   thietBiService, 
   coSoVatChatService, 
@@ -56,15 +35,8 @@ interface SyncStats {
   dataSize: number; // bytes
 }
 
-interface AutoSyncConfig {
-  enabled: boolean;
-  interval: number; // minutes
-  mode: 'upload' | 'download' | 'bidirectional';
-  storageMode: 'local' | 'cloud' | 'hybrid';
-}
-
 const AutoSyncManager: React.FC = () => {
-  const { config, status, updateConfig, startAutoSync, stopAutoSync, performManualSync, resetStats } = useAutoSync();
+  const { config, status, updateConfig, stopAutoSync, performManualSync, resetStats } = useAutoSync();
   
   const [stats, setStats] = useState<SyncStats>({
     totalSyncs: 0,
@@ -79,10 +51,8 @@ const AutoSyncManager: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const intervalRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Load config và stats từ localStorage
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   React.useEffect(() => {
     const savedConfig = localStorage.getItem('autoSyncConfig');
     if (savedConfig) {
@@ -104,7 +74,7 @@ const AutoSyncManager: React.FC = () => {
         console.error('Lỗi khi parse auto sync stats:', error);
       }
     }
-  }, []);
+  }, [updateConfig]);
 
   // Save stats vào localStorage
   React.useEffect(() => {
@@ -180,10 +150,9 @@ const AutoSyncManager: React.FC = () => {
   };
 
   // Cleanup khi component unmount
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   React.useEffect(() => {
     return () => stopAutoSync();
-  }, []);
+  }, [stopAutoSync]);
 
   const formatDuration = (ms: number): string => {
     if (ms < 1000) return `${ms}ms`;

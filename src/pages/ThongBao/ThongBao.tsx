@@ -104,7 +104,7 @@ const ThongBaoPage: React.FC = () => {
     if (editingThongBao) {
       thongBaoService.update(editingThongBao.id, submitData);
     } else {
-      thongBaoService.add(submitData);
+      thongBaoService.add(submitData as Omit<ThongBao, 'id'>);
     }
     loadThongBaoList();
     handleCloseDialog();

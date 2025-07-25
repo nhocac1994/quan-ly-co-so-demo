@@ -93,7 +93,7 @@ const CoSoVatChatManagement: React.FC = () => {
     if (editingCoSoVatChat) {
       coSoVatChatService.update(editingCoSoVatChat.id, formData);
     } else {
-      coSoVatChatService.add(formData);
+      coSoVatChatService.add(formData as Omit<CoSoVatChat, 'id'>);
     }
     loadCoSoVatChatList();
     handleCloseDialog();
