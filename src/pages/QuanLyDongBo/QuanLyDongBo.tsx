@@ -19,6 +19,7 @@ import {
 import AutoSyncManager from '../../components/AutoSyncManager/AutoSyncManager';
 import SimpleSyncStatus from '../../components/SimpleSyncStatus/SimpleSyncStatus';
 import VercelConnectionTest from '../../components/VercelConnectionTest/VercelConnectionTest';
+import VercelDebug from '../../components/VercelDebug/VercelDebug';
 
 const QuanLyDongBo: React.FC = () => {
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
@@ -197,6 +198,9 @@ const QuanLyDongBo: React.FC = () => {
 
       {/* Vercel Connection Test */}
       <VercelConnectionTest />
+
+      {/* Vercel Debug */}
+      <VercelDebug />
 
       {/* Simple Sync Status */}
       <SimpleSyncStatus />
