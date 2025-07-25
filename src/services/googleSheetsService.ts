@@ -37,17 +37,61 @@ class GoogleSheetsService {
     const expiry = now + 3600; // 1 giờ
 
     try {
-      // Xử lý private key
-      const cleanKey = privateKey
-        .replace(/-----BEGIN PRIVATE KEY-----/, '')
-        .replace(/-----END PRIVATE KEY-----/, '')
-        .replace(/\s/g, '');
+      // Debug: Kiểm tra private key
+      console.log('🔍 Debug: Private key length:', privateKey.length);
+      console.log('🔍 Debug: Private key starts with:', privateKey.substring(0, 50));
+      console.log('🔍 Debug: Private key ends with:', privateKey.substring(privateKey.length - 50));
+
+      // Xử lý private key - thử nhiều format
+      let cleanKey = privateKey;
+
+      // Loại bỏ PEM headers nếu có
+      if (privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
+        cleanKey = privateKey
+          .replace(/-----BEGIN PRIVATE KEY-----/, '')
+          .replace(/-----END PRIVATE KEY-----/, '')
+          .replace(/\s/g, '');
+      }
+
+      // Loại bỏ RSA headers nếu có
+      if (privateKey.includes('-----BEGIN RSA PRIVATE KEY-----')) {
+        cleanKey = privateKey
+          .replace(/-----BEGIN RSA PRIVATE KEY-----/, '')
+          .replace(/-----END RSA PRIVATE KEY-----/, '')
+          .replace(/\s/g, '');
+      }
+
+      console.log('🔍 Debug: Clean key length:', cleanKey.length);
+
+      // Thử decode base64 với nhiều cách
+      let decodedKey: string;
+      try {
+        // Thử URL-safe base64
+        const urlSafeKey = cleanKey.replace(/-/g, '+').replace(/_/g, '/');
+        decodedKey = atob(urlSafeKey);
+        console.log('✅ Success: URL-safe base64 decode');
+      } catch (error) {
+        console.log('❌ Failed: URL-safe base64 decode, trying raw base64');
+        try {
+          // Thử raw base64
+          decodedKey = atob(cleanKey);
+          console.log('✅ Success: Raw base64 decode');
+        } catch (error2) {
+          console.log('❌ Failed: Raw base64 decode, trying with padding');
+          // Thử thêm padding
+          const paddedKey = cleanKey + '='.repeat((4 - cleanKey.length % 4) % 4);
+          decodedKey = atob(paddedKey);
+          console.log('✅ Success: Padded base64 decode');
+        }
+      }
 
       // Tạo PEM key
       const pemKey = `-----BEGIN PRIVATE KEY-----\n${cleanKey}\n-----END PRIVATE KEY-----`;
-
+      console.log('🔍 Debug: PEM key length:', pemKey.length);
+      
       // Import key
       const key = await jose.importPKCS8(pemKey, 'RS256');
+      console.log('✅ Success: Key imported');
 
       // Tạo JWT
       const token = await new jose.SignJWT({
@@ -62,9 +106,10 @@ class GoogleSheetsService {
         .setExpirationTime(expiry)
         .sign(key);
 
+      console.log('✅ Success: JWT created');
       return token;
     } catch (error) {
-      console.error('Lỗi tạo JWT:', error);
+      console.error('❌ Error creating JWT:', error);
       throw new Error('Không thể tạo JWT token');
     }
   }

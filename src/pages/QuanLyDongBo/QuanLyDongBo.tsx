@@ -17,6 +17,7 @@ import {
 import { useAutoSync } from '../../contexts/AutoSyncContext';
 import AutoSyncManager from '../../components/AutoSyncManager/AutoSyncManager';
 import AutoSyncStatus from '../../components/AutoSyncStatus/AutoSyncStatus';
+import GoogleSheetsDebug from '../../components/GoogleSheetsDebug/GoogleSheetsDebug';
 
 const QuanLyDongBo: React.FC = () => {
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
@@ -161,6 +162,9 @@ const QuanLyDongBo: React.FC = () => {
           <AutoSyncStatus />
         </CardContent>
       </Card>
+
+      {/* Debug Tool */}
+      <GoogleSheetsDebug />
 
       {/* Configuration */}
       <Card sx={{ mb: 3 }}>
