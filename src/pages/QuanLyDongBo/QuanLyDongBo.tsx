@@ -18,6 +18,7 @@ import {
 } from '@mui/icons-material';
 import AutoSyncManager from '../../components/AutoSyncManager/AutoSyncManager';
 import SimpleSyncStatus from '../../components/SimpleSyncStatus/SimpleSyncStatus';
+import VercelConnectionTest from '../../components/VercelConnectionTest/VercelConnectionTest';
 
 const QuanLyDongBo: React.FC = () => {
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
@@ -191,10 +192,14 @@ const QuanLyDongBo: React.FC = () => {
         </Grid>
       </Grid>
 
-      {/* Auto Sync Manager - Full Width */}
-      <Box sx={{ width: '100%' }}>
-        <AutoSyncManager />
-      </Box>
+      {/* Auto Sync Manager */}
+      <AutoSyncManager />
+
+      {/* Vercel Connection Test */}
+      <VercelConnectionTest />
+
+      {/* Simple Sync Status */}
+      <SimpleSyncStatus />
 
       {/* Footer Information */}
       <Box mt={4}>
