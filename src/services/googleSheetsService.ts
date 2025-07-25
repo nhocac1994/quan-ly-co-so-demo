@@ -1,16 +1,21 @@
-// Service Google Sheets đơn giản - chỉ sử dụng API Key và Google Sheets API v4
+// Service Google Sheets sử dụng Service Account với JWT
+import * as jose from 'jose';
+
 export interface GoogleSheetsConfig {
   spreadsheetId: string;
-  apiKey: string;
+  clientEmail: string;
+  privateKey: string;
 }
 
-class GoogleSheetsSimpleService {
+class GoogleSheetsService {
   private config: GoogleSheetsConfig | null = null;
+  private accessToken: string = '';
+  private tokenExpiry: number | null = null;
 
   // Khởi tạo service
-  async initialize(spreadsheetId: string, apiKey: string): Promise<boolean> {
+  async initialize(spreadsheetId: string, clientEmail: string, privateKey: string): Promise<boolean> {
     try {
-      this.config = { spreadsheetId, apiKey };
+      this.config = { spreadsheetId, clientEmail, privateKey };
       
       // Test connection ngay lập tức
       const isConnected = await this.testConnection();
@@ -21,18 +26,100 @@ class GoogleSheetsSimpleService {
     }
   }
 
+  // Tạo JWT token
+  private async createJWT(): Promise<string> {
+    if (!this.config) {
+      throw new Error('Chưa khởi tạo service');
+    }
+
+    const { clientEmail, privateKey } = this.config;
+    const now = Math.floor(Date.now() / 1000);
+    const expiry = now + 3600; // 1 giờ
+
+    try {
+      // Xử lý private key
+      const cleanKey = privateKey
+        .replace(/-----BEGIN PRIVATE KEY-----/, '')
+        .replace(/-----END PRIVATE KEY-----/, '')
+        .replace(/\s/g, '');
+
+      // Tạo PEM key
+      const pemKey = `-----BEGIN PRIVATE KEY-----\n${cleanKey}\n-----END PRIVATE KEY-----`;
+
+      // Import key
+      const key = await jose.importPKCS8(pemKey, 'RS256');
+
+      // Tạo JWT
+      const token = await new jose.SignJWT({
+        iss: clientEmail,
+        scope: 'https://www.googleapis.com/auth/spreadsheets',
+        aud: 'https://oauth2.googleapis.com/token',
+        exp: expiry,
+        iat: now
+      })
+        .setProtectedHeader({ alg: 'RS256', typ: 'JWT' })
+        .setIssuedAt()
+        .setExpirationTime(expiry)
+        .sign(key);
+
+      return token;
+    } catch (error) {
+      console.error('Lỗi tạo JWT:', error);
+      throw new Error('Không thể tạo JWT token');
+    }
+  }
+
+  // Lấy access token
+  private async getAccessToken(): Promise<string> {
+    if (this.accessToken && this.tokenExpiry && Date.now() < this.tokenExpiry) {
+      return this.accessToken;
+    }
+
+    try {
+      const jwt = await this.createJWT();
+      
+      const response = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+          assertion: jwt
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Lỗi lấy access token: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (!data.access_token) {
+        throw new Error('Không nhận được access token');
+      }
+      this.accessToken = data.access_token;
+      this.tokenExpiry = Date.now() + ((data.expires_in || 3600) * 1000);
+
+      return this.accessToken;
+    } catch (error) {
+      console.error('Lỗi lấy access token:', error);
+      throw error;
+    }
+  }
+
   // Test kết nối
   async testConnection(): Promise<boolean> {
     try {
-      if (!this.config?.spreadsheetId || !this.config?.apiKey) {
+      if (!this.config?.spreadsheetId) {
         return false;
       }
 
+      const accessToken = await this.getAccessToken();
       const response = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${this.config.spreadsheetId}?fields=properties.title&key=${this.config.apiKey}`,
+        `https://sheets.googleapis.com/v4/spreadsheets/${this.config.spreadsheetId}?fields=properties.title`,
         {
-          method: 'GET',
           headers: {
+            'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json'
           }
         }
@@ -59,11 +146,12 @@ class GoogleSheetsSimpleService {
         throw new Error('Chưa khởi tạo service');
       }
 
+      const accessToken = await this.getAccessToken();
       const response = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${this.config.spreadsheetId}/values/${sheetName}!A:Z?key=${this.config.apiKey}`,
+        `https://sheets.googleapis.com/v4/spreadsheets/${this.config.spreadsheetId}/values/${sheetName}!A:Z`,
         {
-          method: 'GET',
           headers: {
+            'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json'
           }
         }
@@ -82,22 +170,20 @@ class GoogleSheetsSimpleService {
     }
   }
 
-  // Ghi dữ liệu vào sheet (sử dụng batchUpdate)
+  // Ghi dữ liệu vào sheet
   async writeSheet(sheetName: string, values: any[][]): Promise<void> {
     try {
       if (!this.config) {
         throw new Error('Chưa khởi tạo service');
       }
 
-      // Xóa dữ liệu cũ trước
-      await this.clearSheet(sheetName);
-
-      // Ghi dữ liệu mới
+      const accessToken = await this.getAccessToken();
       const response = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${this.config.spreadsheetId}/values/${sheetName}!A1?valueInputOption=RAW&key=${this.config.apiKey}`,
+        `https://sheets.googleapis.com/v4/spreadsheets/${this.config.spreadsheetId}/values/${sheetName}!A1?valueInputOption=RAW`,
         {
           method: 'PUT',
           headers: {
+            'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -115,31 +201,6 @@ class GoogleSheetsSimpleService {
     } catch (error) {
       console.error(`❌ Lỗi ghi sheet ${sheetName}:`, error);
       throw new Error(`Không thể ghi dữ liệu vào sheet ${sheetName}`);
-    }
-  }
-
-  // Xóa dữ liệu trong sheet
-  async clearSheet(sheetName: string): Promise<void> {
-    try {
-      if (!this.config) {
-        throw new Error('Chưa khởi tạo service');
-      }
-
-      const response = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${this.config.spreadsheetId}/values/${sheetName}!A:Z:clear?key=${this.config.apiKey}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      if (!response.ok) {
-        console.warn(`Cảnh báo: Không thể xóa sheet ${sheetName}:`, response.status);
-      }
-    } catch (error) {
-      console.warn(`Cảnh báo: Lỗi xóa sheet ${sheetName}:`, error);
     }
   }
 
@@ -199,88 +260,24 @@ class GoogleSheetsSimpleService {
     
     return sheetData;
   }
-
-  // Đọc tất cả dữ liệu từ Google Sheets
-  async readAllData(): Promise<{
-    thietBi: any[];
-    coSoVatChat: any[];
-    lichSuSuDung: any[];
-    baoTri: any[];
-    thongBao: any[];
-    nguoiDung: any[];
-  }> {
-    try {
-      console.log('📖 Bắt đầu đọc tất cả dữ liệu...');
-
-      const [thietBi, coSoVatChat, lichSuSuDung, baoTri, thongBao, nguoiDung] = await Promise.all([
-        this.readSheetData('ThietBi'),
-        this.readSheetData('CoSoVatChat'),
-        this.readSheetData('LichSuSuDung'),
-        this.readSheetData('BaoTri'),
-        this.readSheetData('ThongBao'),
-        this.readSheetData('NguoiDung')
-      ]);
-
-      console.log('✅ Đọc tất cả dữ liệu thành công!');
-      return { thietBi, coSoVatChat, lichSuSuDung, baoTri, thongBao, nguoiDung };
-    } catch (error) {
-      console.error('❌ Lỗi đọc tất cả dữ liệu:', error);
-      throw error;
-    }
-  }
-
-  // Đọc dữ liệu từ một sheet và chuyển đổi thành objects
-  private async readSheetData(sheetName: string): Promise<any[]> {
-    try {
-      const rawData = await this.readSheet(sheetName);
-      
-      if (rawData.length < 2) {
-        console.log(`📝 Sheet ${sheetName} trống hoặc chỉ có header`);
-        return [];
-      }
-
-      const headers = rawData[0];
-      const dataRows = rawData.slice(1);
-      
-      return dataRows.map(row => {
-        const obj: any = {};
-        headers.forEach((header: string, index: number) => {
-          if (row[index] !== undefined && row[index] !== '') {
-            obj[header] = row[index];
-          }
-        });
-        return obj;
-      });
-    } catch (error) {
-      console.error(`❌ Lỗi đọc sheet ${sheetName}:`, error);
-      return [];
-    }
-  }
 }
 
 // Export service instance
-export const googleSheetsSimpleService = new GoogleSheetsSimpleService();
+export const googleSheetsService = new GoogleSheetsService();
 
 // Helper functions
-export const initializeGoogleSheetsWithAPIKey = async (
-  apiKey: string
+export const initializeGoogleSheets = async (
+  spreadsheetId: string,
+  clientEmail: string,
+  privateKey: string
 ): Promise<boolean> => {
-  const spreadsheetId = process.env.REACT_APP_GOOGLE_SPREADSHEET_ID;
-  if (!spreadsheetId) {
-    console.error('❌ Chưa cấu hình REACT_APP_GOOGLE_SPREADSHEET_ID');
-    return false;
-  }
-  return await googleSheetsSimpleService.initialize(spreadsheetId, apiKey);
+  return await googleSheetsService.initialize(spreadsheetId, clientEmail, privateKey);
 };
 
-export const syncDataToGoogleSheetsSimple = async (data: any): Promise<void> => {
-  await googleSheetsSimpleService.syncAllData(data);
+export const syncDataToGoogleSheets = async (data: any): Promise<void> => {
+  await googleSheetsService.syncAllData(data);
 };
 
-export const readDataFromGoogleSheetsSimple = async (): Promise<any> => {
-  return await googleSheetsSimpleService.readAllData();
-};
-
-export const testGoogleSheetsSimpleConnection = async (): Promise<boolean> => {
-  return await googleSheetsSimpleService.testConnection();
+export const testGoogleSheetsConnection = async (): Promise<boolean> => {
+  return await googleSheetsService.testConnection();
 }; 
