@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -9,7 +9,6 @@ import {
   Chip,
   Breadcrumbs,
   Link,
-  Divider,
   Alert
 } from '@mui/material';
 import {
@@ -31,13 +30,7 @@ const ThietBiView: React.FC = () => {
   const [error, setError] = useState('');
   const [qrModalOpen, setQrModalOpen] = useState(false);
 
-  useEffect(() => {
-    if (id) {
-      loadThietBiData();
-    }
-  }, [id]);
-
-  const loadThietBiData = () => {
+  const loadThietBiData = useCallback(() => {
     try {
       setLoading(true);
       const data = thietBiService.getById(id!);
@@ -52,7 +45,13 @@ const ThietBiView: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    if (id) {
+      loadThietBiData();
+    }
+  }, [id, loadThietBiData]);
 
   const handleDelete = () => {
     if (window.confirm('Bạn có chắc chắn muốn xóa thiết bị này?')) {

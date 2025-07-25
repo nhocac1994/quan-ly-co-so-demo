@@ -1,5 +1,17 @@
 // Service OAuth 2.0 để tích hợp với Google Sheets API
-import { DEFAULT_GOOGLE_SHEETS_CONFIG, GoogleSheetsConfig } from './googleSheets';
+
+// Cấu hình mặc định cho OAuth
+const OAUTH_CONFIG = {
+  spreadsheetId: '1FjhaEQdhER3mXQFm3lLtG08IsaUak1aL-gRDSOdI3No',
+  ranges: {
+    thietBi: 'ThietBi!A:K',
+    coSoVatChat: 'CoSoVatChat!A:J',
+    lichSuSuDung: 'LichSuSuDung!A:J',
+    baoTri: 'BaoTri!A:K',
+    thongBao: 'ThongBao!A:I',
+    nguoiDung: 'NguoiDung!A:H'
+  }
+};
 
 export interface OAuthConfig {
   clientId: string;
@@ -114,7 +126,7 @@ class GoogleOAuthService {
     try {
       const accessToken = await this.getAccessToken();
       const response = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${DEFAULT_GOOGLE_SHEETS_CONFIG.spreadsheetId}`,
+        `https://sheets.googleapis.com/v4/spreadsheets/${OAUTH_CONFIG.spreadsheetId}`,
         {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
@@ -134,7 +146,7 @@ class GoogleOAuthService {
     const accessToken = await this.getAccessToken();
     
     const response = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${DEFAULT_GOOGLE_SHEETS_CONFIG.spreadsheetId}/values/${range}`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${OAUTH_CONFIG.spreadsheetId}/values/${range}`,
       {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -155,7 +167,7 @@ class GoogleOAuthService {
     const accessToken = await this.getAccessToken();
     
     const response = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${DEFAULT_GOOGLE_SHEETS_CONFIG.spreadsheetId}/values/${range}?valueInputOption=RAW`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${OAUTH_CONFIG.spreadsheetId}/values/${range}?valueInputOption=RAW`,
       {
         method: 'PUT',
         headers: {
@@ -178,7 +190,7 @@ class GoogleOAuthService {
   async syncToGoogleSheets(localData: any, sheetName: string): Promise<void> {
     try {
       const values = this.convertDataToSheetFormat(localData);
-      const range = DEFAULT_GOOGLE_SHEETS_CONFIG.ranges[sheetName as keyof typeof DEFAULT_GOOGLE_SHEETS_CONFIG.ranges];
+      const range = OAUTH_CONFIG.ranges[sheetName as keyof typeof OAUTH_CONFIG.ranges];
       await this.writeRange(range, values);
       console.log(`✅ Đã đồng bộ dữ liệu ${sheetName} lên Google Sheets`);
     } catch (error) {

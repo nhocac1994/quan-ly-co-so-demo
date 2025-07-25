@@ -1,27 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
   Button,
-  Paper,
   TextField,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  Grid,
-  Alert,
   Breadcrumbs,
   Link,
-  Divider,
-  Card,
-  CardContent
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
-  Save as SaveIcon,
-  Add as AddIcon,
-  Edit as EditIcon
+  Save as SaveIcon
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { thietBiService } from '../../services/localStorage';
@@ -68,13 +62,7 @@ const ThietBiDetail: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
-  useEffect(() => {
-    if (isEditMode && id && id !== 'new') {
-      loadThietBiData();
-    }
-  }, [id, isEditMode, pathname]);
-
-  const loadThietBiData = () => {
+  const loadThietBiData = useCallback(() => {
     try {
       const thietBi = thietBiService.getById(id!);
       if (thietBi) {
@@ -92,7 +80,13 @@ const ThietBiDetail: React.FC = () => {
     } catch (error) {
       console.error('Lỗi khi tải dữ liệu thiết bị:', error);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    if (isEditMode && id && id !== 'new') {
+      loadThietBiData();
+    }
+  }, [id, isEditMode, pathname, loadThietBiData]);
 
   const validateForm = () => {
     const newErrors: {[key: string]: string} = {};
@@ -212,127 +206,113 @@ const ThietBiDetail: React.FC = () => {
       )}
 
       {/* Form */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Grid container spacing={3}>
-            {/* Tên thiết bị */}
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Tên thiết bị *"
-                value={formData.ten}
-                onChange={(e) => handleInputChange('ten', e.target.value)}
-                error={!!errors.ten}
-                helperText={errors.ten}
-                required
-                disabled={isViewMode}
-              />
-            </Grid>
+      <Box sx={{ mb: 3 }}>
+        <TextField
+          fullWidth
+          label="Tên thiết bị *"
+          value={formData.ten}
+          onChange={(e) => handleInputChange('ten', e.target.value)}
+          error={!!errors.ten}
+          helperText={errors.ten}
+          required
+          disabled={isViewMode}
+        />
+      </Box>
 
-            {/* Loại thiết bị */}
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Loại thiết bị *"
-                value={formData.loai}
-                onChange={(e) => handleInputChange('loai', e.target.value)}
-                error={!!errors.loai}
-                helperText={errors.loai}
-                required
-                disabled={isViewMode}
-              />
-            </Grid>
+      <Box sx={{ mb: 3 }}>
+        <TextField
+          fullWidth
+          label="Loại thiết bị *"
+          value={formData.loai}
+          onChange={(e) => handleInputChange('loai', e.target.value)}
+          error={!!errors.loai}
+          helperText={errors.loai}
+          required
+          disabled={isViewMode}
+        />
+      </Box>
 
-            {/* Số lượng */}
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Số lượng *"
-                type="number"
-                value={formData.soLuong}
-                onChange={(e) => handleInputChange('soLuong', parseInt(e.target.value) || 0)}
-                error={!!errors.soLuong}
-                helperText={errors.soLuong}
-                required
-                inputProps={{ min: 1 }}
-                disabled={isViewMode}
-              />
-            </Grid>
+      <Box sx={{ mb: 3 }}>
+        <TextField
+          fullWidth
+          label="Số lượng *"
+          type="number"
+          value={formData.soLuong}
+          onChange={(e) => handleInputChange('soLuong', parseInt(e.target.value) || 0)}
+          error={!!errors.soLuong}
+          helperText={errors.soLuong}
+          required
+          inputProps={{ min: 1 }}
+          disabled={isViewMode}
+        />
+      </Box>
 
-            {/* Tình trạng */}
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Tình trạng</InputLabel>
-                <Select
-                  value={formData.tinhTrang}
-                  label="Tình trạng"
-                  onChange={(e) => handleInputChange('tinhTrang', e.target.value)}
-                  disabled={isViewMode}
-                >
-                  <MenuItem value="suDung">Đang sử dụng</MenuItem>
-                  <MenuItem value="hongHoc">Hỏng hóc</MenuItem>
-                  <MenuItem value="baoTri">Bảo trì</MenuItem>
-                  <MenuItem value="ngungSuDung">Ngừng sử dụng</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
+      <Box sx={{ mb: 3 }}>
+        <FormControl fullWidth>
+          <InputLabel>Tình trạng</InputLabel>
+          <Select
+            value={formData.tinhTrang}
+            label="Tình trạng"
+            onChange={(e) => handleInputChange('tinhTrang', e.target.value)}
+            disabled={isViewMode}
+          >
+            <MenuItem value="suDung">Đang sử dụng</MenuItem>
+            <MenuItem value="hongHoc">Hỏng hóc</MenuItem>
+            <MenuItem value="baoTri">Bảo trì</MenuItem>
+            <MenuItem value="ngungSuDung">Ngừng sử dụng</MenuItem>
+          </Select>
+        </FormControl>
+      </Box>
 
-            {/* Vị trí */}
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Vị trí *"
-                value={formData.viTri}
-                onChange={(e) => handleInputChange('viTri', e.target.value)}
-                error={!!errors.viTri}
-                helperText={errors.viTri}
-                required
-                disabled={isViewMode}
-              />
-            </Grid>
+      <Box sx={{ mb: 3 }}>
+        <TextField
+          fullWidth
+          label="Vị trí *"
+          value={formData.viTri}
+          onChange={(e) => handleInputChange('viTri', e.target.value)}
+          error={!!errors.viTri}
+          helperText={errors.viTri}
+          required
+          disabled={isViewMode}
+        />
+      </Box>
 
-            {/* Nhà cung cấp */}
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Nhà cung cấp"
-                value={formData.nhaCungCap}
-                onChange={(e) => handleInputChange('nhaCungCap', e.target.value)}
-                disabled={isViewMode}
-              />
-            </Grid>
+      <Box sx={{ mb: 3 }}>
+        <TextField
+          fullWidth
+          label="Nhà cung cấp"
+          value={formData.nhaCungCap}
+          onChange={(e) => handleInputChange('nhaCungCap', e.target.value)}
+          disabled={isViewMode}
+        />
+      </Box>
 
-            {/* Giá trị */}
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Giá trị (VNĐ)"
-                type="number"
-                value={formData.giaTri}
-                onChange={(e) => handleInputChange('giaTri', parseInt(e.target.value) || 0)}
-                error={!!errors.giaTri}
-                helperText={errors.giaTri}
-                inputProps={{ min: 0 }}
-                disabled={isViewMode}
-              />
-            </Grid>
+      <Box sx={{ mb: 3 }}>
+        <TextField
+          fullWidth
+          label="Giá trị (VNĐ)"
+          type="number"
+          value={formData.giaTri}
+          onChange={(e) => handleInputChange('giaTri', parseInt(e.target.value) || 0)}
+          error={!!errors.giaTri}
+          helperText={errors.giaTri}
+          inputProps={{ min: 0 }}
+          disabled={isViewMode}
+        />
+      </Box>
 
-            {/* Mô tả */}
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Mô tả"
-                multiline
-                rows={4}
-                value={formData.moTa}
-                onChange={(e) => handleInputChange('moTa', e.target.value)}
-                placeholder="Nhập mô tả chi tiết về thiết bị..."
-                disabled={isViewMode}
-              />
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
+      <Box sx={{ mb: 3 }}>
+        <TextField
+          fullWidth
+          label="Mô tả"
+          multiline
+          rows={4}
+          value={formData.moTa}
+          onChange={(e) => handleInputChange('moTa', e.target.value)}
+          placeholder="Nhập mô tả chi tiết về thiết bị..."
+          disabled={isViewMode}
+        />
+      </Box>
 
       {/* Action Buttons */}
       <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
@@ -348,7 +328,7 @@ const ThietBiDetail: React.FC = () => {
             variant="contained"
             onClick={handleSubmit}
             disabled={isLoading}
-            startIcon={isLoading ? null : (isAddMode ? <AddIcon /> : <EditIcon />)}
+            startIcon={isLoading ? <CircularProgress size={24} /> : null}
           >
             {isLoading ? 'Đang lưu...' : (isAddMode ? 'Thêm thiết bị' : 'Cập nhật')}
           </Button>

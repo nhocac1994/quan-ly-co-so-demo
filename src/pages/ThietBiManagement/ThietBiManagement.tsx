@@ -1,31 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
   Button,
-  Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
+  Paper,
   IconButton,
-  Chip,
-  Alert,
   Tooltip,
   TextField,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  InputAdornment
+  InputAdornment,
+  Chip
 } from '@mui/material';
-import { 
-  Add as AddIcon, 
-  Edit as EditIcon, 
-  Delete as DeleteIcon, 
-  Visibility as VisibilityIcon, 
+import {
+  Add as AddIcon,
   QrCode as QrCodeIcon,
   Search as SearchIcon,
   Clear as ClearIcon
@@ -93,7 +89,7 @@ const ThietBiManagement: React.FC = () => {
   };
 
   // Filter logic
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = thietBiList;
     console.log('🔍 Áp dụng bộ lọc:', { searchTerm, statusFilter, typeFilter, locationFilter });
 
@@ -128,12 +124,12 @@ const ThietBiManagement: React.FC = () => {
 
     console.log('✅ Kết quả cuối cùng:', filtered.length);
     setFilteredList(filtered);
-  };
+  }, [searchTerm, statusFilter, typeFilter, locationFilter, thietBiList]);
 
   // Apply filters when any filter changes
   useEffect(() => {
     applyFilters();
-  }, [searchTerm, statusFilter, typeFilter, locationFilter, thietBiList]);
+  }, [applyFilters]);
 
   // Get unique values for filter options
   const getUniqueTypes = () => {

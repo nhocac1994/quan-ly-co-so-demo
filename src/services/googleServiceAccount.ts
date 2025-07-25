@@ -1,8 +1,6 @@
 // Service sử dụng Service Account để truy cập Google Sheets
 // Không cần OAuth flow, chỉ cần credentials.json
 
-import { DEFAULT_GOOGLE_SHEETS_CONFIG } from './googleSheets';
-
 export interface ServiceAccountConfig {
   spreadsheetId: string;
   credentials: any; // Service account credentials
