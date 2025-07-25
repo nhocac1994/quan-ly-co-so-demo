@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { 
-  initializeGoogleSheets, 
-  syncDataToGoogleSheets,
-  testGoogleSheetsConnection
-} from '../services/googleServiceAccountVercel';
+  initializeGoogleSheetsAPI, 
+  syncDataToGoogleSheetsAPI,
+  testGoogleSheetsAPIConnection
+} from '../services/googleSheetsAPI';
 import { syncEventService } from '../services/syncEventService';
 import { 
   thietBiService, 
@@ -92,18 +92,16 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     try {
       const spreadsheetId = process.env.REACT_APP_GOOGLE_SPREADSHEET_ID;
-      const clientEmail = process.env.REACT_APP_GOOGLE_SERVICE_ACCOUNT_EMAIL;
-      const privateKey = process.env.REACT_APP_GOOGLE_PRIVATE_KEY;
+      const apiKey = process.env.REACT_APP_GOOGLE_API_KEY;
 
-      if (!spreadsheetId || !clientEmail || !privateKey) {
+      if (!spreadsheetId || !apiKey) {
         setStatus(prev => ({ ...prev, isConnected: false, error: 'Thiếu environment variables' }));
         return false;
       }
 
-      const isConnected = await initializeGoogleSheets(
+      const isConnected = await initializeGoogleSheetsAPI(
         spreadsheetId,
-        clientEmail,
-        privateKey
+        apiKey
       );
 
       setStatus(prev => ({ 
@@ -160,7 +158,7 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       };
 
       // Sync lên Google Sheets
-      await syncDataToGoogleSheets(localStorageData);
+      await syncDataToGoogleSheetsAPI(localStorageData);
 
       // Cập nhật trạng thái
       setStatus(prev => ({
