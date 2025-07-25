@@ -43,18 +43,18 @@ const VercelDebug: React.FC = () => {
     setErrorMessage('');
 
     try {
-      // Lấy environment variables
       const spreadsheetId = process.env.REACT_APP_GOOGLE_SHEETS_SPREADSHEET_ID;
       const clientEmail = process.env.REACT_APP_GOOGLE_SERVICE_ACCOUNT_EMAIL;
       const privateKey = process.env.REACT_APP_GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
 
-      // Debug info
       const debugData = {
         spreadsheetId: spreadsheetId ? '✅ Đã cấu hình' : '❌ Chưa cấu hình',
         clientEmail: clientEmail ? '✅ Đã cấu hình' : '❌ Chưa cấu hình',
         privateKey: privateKey ? '✅ Đã cấu hình' : '❌ Chưa cấu hình',
         privateKeyLength: privateKey ? privateKey.length : 0,
-        privateKeyFormat: privateKey ? analyzePrivateKeyFormat(privateKey) : 'N/A'
+        privateKeyFormat: privateKey ? analyzePrivateKeyFormat(privateKey) : 'N/A',
+        privateKeyStart: privateKey ? privateKey.substring(0, 50) + '...' : 'N/A',
+        privateKeyEnd: privateKey ? '...' + privateKey.substring(privateKey.length - 50) : 'N/A'
       };
 
       setDebugInfo(debugData);
@@ -209,6 +209,24 @@ const VercelDebug: React.FC = () => {
                 <ListItemText 
                   primary="Private Key Format" 
                   secondary={debugInfo.privateKeyFormat || 'N/A'} 
+                />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <BugReportIcon />
+                </ListItemIcon>
+                <ListItemText 
+                  primary="Private Key Start" 
+                  secondary={debugInfo.privateKeyStart || 'N/A'} 
+                />
+              </ListItem>
+              <ListItem>
+                <ListItemIcon>
+                  <BugReportIcon />
+                </ListItemIcon>
+                <ListItemText 
+                  primary="Private Key End" 
+                  secondary={debugInfo.privateKeyEnd || 'N/A'} 
                 />
               </ListItem>
             </List>

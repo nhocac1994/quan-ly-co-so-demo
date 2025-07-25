@@ -37,11 +37,18 @@ class GoogleSheetsService {
     const expiry = now + 3600; // 1 giờ
 
     try {
+      // Debug: Kiểm tra private key
+      console.log('🔍 Debug: Private key length:', privateKey.length);
+      console.log('🔍 Debug: Private key starts with:', privateKey.substring(0, 50));
+      console.log('🔍 Debug: Private key ends with:', privateKey.substring(privateKey.length - 50));
+
       // Xử lý private key đơn giản
       const cleanKey = privateKey
         .replace(/-----BEGIN PRIVATE KEY-----/, '')
         .replace(/-----END PRIVATE KEY-----/, '')
         .replace(/\s/g, '');
+
+      console.log('🔍 Debug: Clean key length:', cleanKey.length);
 
       // Thử decode base64
       let decodedKey: string;
@@ -49,16 +56,20 @@ class GoogleSheetsService {
         // Thử URL-safe base64
         const urlSafeKey = cleanKey.replace(/-/g, '+').replace(/_/g, '/');
         decodedKey = atob(urlSafeKey);
-      } catch {
+        console.log('✅ Success: URL-safe base64 decode');
+      } catch (error) {
+        console.log('❌ Failed: URL-safe base64 decode, trying raw base64');
         // Thử raw base64
         decodedKey = atob(cleanKey);
+        console.log('✅ Success: Raw base64 decode');
       }
 
       // Import key
-      const key = await jose.importPKCS8(
-        `-----BEGIN PRIVATE KEY-----\n${cleanKey}\n-----END PRIVATE KEY-----`,
-        'RS256'
-      );
+      const pemKey = `-----BEGIN PRIVATE KEY-----\n${cleanKey}\n-----END PRIVATE KEY-----`;
+      console.log('🔍 Debug: PEM key length:', pemKey.length);
+      
+      const key = await jose.importPKCS8(pemKey, 'RS256');
+      console.log('✅ Success: Key imported');
 
       // Tạo JWT
       const token = await new jose.SignJWT({
@@ -73,8 +84,10 @@ class GoogleSheetsService {
         .setExpirationTime(expiry)
         .sign(key);
 
+      console.log('✅ Success: JWT created');
       return token;
     } catch (error) {
+      console.error('❌ Error creating JWT:', error);
       throw new Error('Không thể tạo JWT token');
     }
   }
