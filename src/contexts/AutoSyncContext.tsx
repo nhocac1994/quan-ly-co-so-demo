@@ -15,8 +15,7 @@ import {
 
 interface AutoSyncConfig {
   isEnabled: boolean;
-  mode: 'event-driven' | 'time-based';
-  interval: number; // seconds (chỉ dùng cho time-based)
+  interval: number; // seconds cho auto sync
   storageMode: 'local' | 'cloud' | 'hybrid';
 }
 
@@ -59,11 +58,10 @@ const getConfigFromStorage = (): AutoSyncConfig => {
     }
   }
   
-  // Default config - event-driven
+  // Default config - simplified
   return {
     isEnabled: true,
-    mode: 'event-driven',
-    interval: 3,
+    interval: 5, // 5 giây
     storageMode: 'hybrid'
   };
 };
@@ -186,25 +184,16 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       clearInterval(intervalRef.current);
     }
 
-    if (config.isEnabled) {
-      if (config.mode === 'event-driven') {
-        // Event-driven mode - không cần interval
-        console.log('🚀 Event-driven sync đã được kích hoạt');
-        setStatus(prev => ({ ...prev, isRunning: true }));
-      } else {
-        // Time-based mode
-        if (config.interval > 0) {
-          // Thực hiện sync ngay lập tức
-          performSync();
-          
-          // Thiết lập interval
-          intervalRef.current = setInterval(performSync, config.interval * 1000);
-          
-          console.log(`🚀 Time-based sync đã bắt đầu (${config.interval}s interval)`);
-        }
-      }
+    if (config.isEnabled && config.interval > 0) {
+      // Thực hiện sync ngay lập tức
+      performSync();
+      
+      // Thiết lập interval cho auto sync
+      intervalRef.current = setInterval(performSync, config.interval * 1000);
+      console.log(`🔄 Auto sync đã bắt đầu (${config.interval}s interval)`);
+      setStatus(prev => ({ ...prev, isRunning: true }));
     }
-  }, [config.isEnabled, config.mode, config.interval, performSync]);
+  }, [config.isEnabled, config.interval, performSync]);
 
   // Dừng auto-sync
   const stopAutoSync = useCallback(() => {
@@ -291,7 +280,7 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         stopAutoSync();
       }
     }
-  }, [config.isEnabled, config.mode, config.interval, startAutoSync, stopAutoSync]);
+  }, [config.isEnabled, config.interval, startAutoSync, stopAutoSync]);
 
   const value: AutoSyncContextType = {
     config,

@@ -35,7 +35,7 @@ const AutoSyncStatus: React.FC = () => {
 
   const getStatusText = () => {
     if (status.isProcessing) return 'Đang đồng bộ...';
-    if (status.isRunning && config.mode === 'event-driven') return 'Event-driven';
+    if (status.isRunning) return 'Auto sync';
     if (status.error) return 'Lỗi kết nối';
     if (status.isConnected) return 'Đã kết nối';
     return 'Chưa kết nối';
@@ -43,11 +43,7 @@ const AutoSyncStatus: React.FC = () => {
 
   const handleManualSync = async () => {
     if (!status.isProcessing && !status.isRunning) {
-      if (config.mode === 'event-driven') {
-        await forceSync();
-      } else {
-        await performManualSync();
-      }
+      await performManualSync();
     }
   };
 
@@ -68,59 +64,59 @@ const AutoSyncStatus: React.FC = () => {
         />
       </Tooltip>
 
-      {/* Queue length (chỉ hiển thị cho event-driven) */}
-      {config.mode === 'event-driven' && status.queueLength > 0 && (
-        <Tooltip title={`${status.queueLength} thay đổi đang chờ đồng bộ`}>
-          <Chip
-            icon={<QueueIcon fontSize="small" />}
-            label={status.queueLength}
-            size="small"
-            variant="outlined"
-            color="warning"
-            sx={{ fontSize: '0.75rem', minWidth: 'auto' }}
-          />
-        </Tooltip>
-      )}
+                  {/* Queue length (chỉ hiển thị khi có pending changes) */}
+                  {status.queueLength > 0 && (
+                    <Tooltip title={`${status.queueLength} thay đổi đang chờ đồng bộ`}>
+                      <Chip
+                        icon={<QueueIcon fontSize="small" />}
+                        label={status.queueLength}
+                        size="small"
+                        variant="outlined"
+                        color="warning"
+                        sx={{ fontSize: '0.75rem', minWidth: 'auto' }}
+                      />
+                    </Tooltip>
+                  )}
 
-      {/* Thời gian đồng bộ cuối */}
-      {status.lastSync && (
-        <Tooltip title={`Lần đồng bộ cuối: ${status.lastSync}`}>
-          <Chip
-            icon={<TimerIcon fontSize="small" />}
-            label={status.lastSync.split(' ')[1]} // Chỉ hiển thị giờ:phút
-            size="small"
-            variant="outlined"
-            sx={{ fontSize: '0.75rem' }}
-          />
-        </Tooltip>
-      )}
+                  {/* Thời gian đồng bộ cuối */}
+                  {status.lastSync && (
+                    <Tooltip title={`Lần đồng bộ cuối: ${status.lastSync}`}>
+                      <Chip
+                        icon={<TimerIcon fontSize="small" />}
+                        label={status.lastSync.split(' ')[1]}
+                        size="small"
+                        variant="outlined"
+                        sx={{ fontSize: '0.75rem' }}
+                      />
+                    </Tooltip>
+                  )}
 
-      {/* Số lần đồng bộ */}
-      {status.syncCount > 0 && (
-        <Tooltip title={`Đã đồng bộ ${status.syncCount} lần`}>
-          <Chip
-            label={`${status.syncCount}`}
-            size="small"
-            variant="outlined"
-            sx={{ fontSize: '0.75rem', minWidth: 'auto' }}
-          />
-        </Tooltip>
-      )}
+                  {/* Số lần đồng bộ */}
+                  {status.syncCount > 0 && (
+                    <Tooltip title={`Đã đồng bộ ${status.syncCount} lần`}>
+                      <Chip
+                        label={`${status.syncCount}`}
+                        size="small"
+                        variant="outlined"
+                        sx={{ fontSize: '0.75rem', minWidth: 'auto' }}
+                      />
+                    </Tooltip>
+                  )}
 
-      {/* Nút đồng bộ thủ công */}
-      <Tooltip title={config.mode === 'event-driven' ? 'Force sync ngay lập tức' : 'Đồng bộ thủ công'}>
-        <IconButton
-          size="small"
-          onClick={handleManualSync}
-          disabled={status.isProcessing || status.isRunning}
-          sx={{ 
-            color: status.isConnected ? 'success.main' : 'error.main',
-            '&:hover': { backgroundColor: 'rgba(0,0,0,0.04)' }
-          }}
-        >
-          <SyncIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
+                  {/* Nút đồng bộ thủ công */}
+                  <Tooltip title="Đồng bộ thủ công">
+                    <IconButton
+                      size="small"
+                      onClick={handleManualSync}
+                      disabled={status.isProcessing || status.isRunning}
+                      sx={{ 
+                        color: status.isConnected ? 'success.main' : 'error.main',
+                        '&:hover': { backgroundColor: 'rgba(0,0,0,0.04)' }
+                      }}
+                    >
+                      <SyncIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
     </Box>
   );
 };

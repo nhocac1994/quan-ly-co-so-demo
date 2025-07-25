@@ -66,8 +66,6 @@ class SyncEventService {
     this.syncQueue = []; // Clear queue
 
     try {
-      console.log(`🔄 Processing ${events.length} sync events...`);
-      
       // Lấy dữ liệu hiện tại từ localStorage
       const currentData = this.getCurrentData();
       
@@ -75,7 +73,6 @@ class SyncEventService {
       await syncDataWithServiceAccountVercel(currentData);
       
       this.lastSyncTime = Date.now();
-      console.log(`✅ Sync completed for ${events.length} events`);
       
     } catch (error) {
       console.error('❌ Sync failed:', error);
@@ -152,5 +149,4 @@ export const triggerSyncEvent = (
   data?: any
 ) => {
   syncEventService.addEvent({ type, table, data });
-  console.log(`📡 Sync event triggered: ${type} ${table}`);
 }; 

@@ -338,47 +338,12 @@ const AutoSyncManager: React.FC = () => {
           </Box>
         </Box>
 
-        {/* Sync Mode & Storage Mode - Side by Side */}
-        {/* Grid */}
+        {/* Storage Mode */}
         <Box sx={{ mb: 3 }}>
-          {/* Sync Mode */}
-          {/* Paper */}
-          <Box sx={{ p: 3, height: '100%' }}>
-            <Box display="flex" alignItems="center" mb={3}>
-              {/* SyncIcon */}
-              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                Phương Thức Đồng Bộ
-              </Typography>
-            </Box>
-            <Box display="flex" gap={2} flexWrap="wrap" justifyContent="center">
-              {[
-                { value: 'upload', label: 'Chỉ ghi lên', color: 'success' },
-                { value: 'download', label: 'Chỉ đọc về', color: 'info' },
-                { value: 'bidirectional', label: 'Hai chiều', color: 'secondary' }
-              ].map((mode) => (
-                <Chip
-                  key={mode.value}
-                  label={mode.label}
-                  color={config.mode === mode.value ? mode.color as any : 'default'}
-                  variant={config.mode === mode.value ? 'filled' : 'outlined'}
-                  onClick={() => updateConfig({ mode: mode.value as any })}
-                  disabled={!config.isEnabled}
-                  size="medium"
-                  sx={{ 
-                    fontSize: '0.9rem',
-                    fontWeight: 'bold',
-                    minWidth: '100px'
-                  }}
-                />
-              ))}
-            </Box>
-          </Box>
 
           {/* Storage Mode */}
-          {/* Paper */}
           <Box sx={{ p: 3, height: '100%' }}>
             <Box display="flex" alignItems="center" mb={3}>
-              {/* StorageIcon */}
               <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
                 Chế Độ Lưu Trữ
               </Typography>
