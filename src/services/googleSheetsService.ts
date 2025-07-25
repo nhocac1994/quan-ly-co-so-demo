@@ -48,7 +48,12 @@ class GoogleSheetsService {
       // Nếu đã là PEM format, sử dụng trực tiếp
       if (privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
         console.log('✅ Private key đã là PEM format');
-        pemKey = privateKey;
+        // Xử lý ký tự đặc biệt trong PEM
+        pemKey = privateKey
+          .replace(/\\n/g, '\n')  // Thay thế \n thành xuống dòng thật
+          .replace(/\\"/g, '"')   // Thay thế \" thành "
+          .replace(/^"/, '')      // Loại bỏ dấu ngoặc kép đầu
+          .replace(/"$/, '');     // Loại bỏ dấu ngoặc kép cuối
       }
       // Nếu là RSA PEM format, chuyển đổi
       else if (privateKey.includes('-----BEGIN RSA PRIVATE KEY-----')) {
@@ -89,26 +94,40 @@ class GoogleSheetsService {
       }
 
       console.log('🔍 Debug: Final PEM key length:', pemKey.length);
+      console.log('🔍 Debug: PEM key sample:', pemKey.substring(0, 100) + '...');
       
       // Import key
-      const key = await jose.importPKCS8(pemKey, 'RS256');
-      console.log('✅ Success: Key imported');
+      let key;
+      try {
+        console.log('🔄 Đang import key...');
+        key = await jose.importPKCS8(pemKey, 'RS256');
+        console.log('✅ Success: Key imported');
+      } catch (importError) {
+        console.error('❌ Error importing key:', importError);
+        throw new Error(`Không thể import private key: ${importError}`);
+      }
 
       // Tạo JWT
-      const token = await new jose.SignJWT({
-        iss: clientEmail,
-        scope: 'https://www.googleapis.com/auth/spreadsheets',
-        aud: 'https://oauth2.googleapis.com/token',
-        exp: expiry,
-        iat: now
-      })
-        .setProtectedHeader({ alg: 'RS256', typ: 'JWT' })
-        .setIssuedAt()
-        .setExpirationTime(expiry)
-        .sign(key);
+      try {
+        console.log('🔄 Đang tạo JWT...');
+        const token = await new jose.SignJWT({
+          iss: clientEmail,
+          scope: 'https://www.googleapis.com/auth/spreadsheets',
+          aud: 'https://oauth2.googleapis.com/token',
+          exp: expiry,
+          iat: now
+        })
+          .setProtectedHeader({ alg: 'RS256', typ: 'JWT' })
+          .setIssuedAt()
+          .setExpirationTime(expiry)
+          .sign(key);
 
-      console.log('✅ Success: JWT created');
-      return token;
+        console.log('✅ Success: JWT created');
+        return token;
+      } catch (jwtError) {
+        console.error('❌ Error creating JWT:', jwtError);
+        throw new Error(`Không thể tạo JWT: ${jwtError}`);
+      }
     } catch (error) {
       console.error('❌ Error creating JWT:', error);
       throw new Error('Không thể tạo JWT token');
