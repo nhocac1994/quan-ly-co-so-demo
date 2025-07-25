@@ -5,24 +5,22 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  Typography,
+  TextField,
   Box,
+  Typography,
   Alert,
-  Divider,
+  Paper,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
-  Paper,
+  Divider,
   CircularProgress
 } from '@mui/material';
 import {
+  CloudUpload as CloudUploadIcon,
   CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
-  Info as InfoIcon,
-  Warning as WarningIcon,
-  Upload as UploadIcon,
-  Security as SecurityIcon
+  Info as InfoIcon
 } from '@mui/icons-material';
 import { initializeGoogleServiceAccount, syncDataWithServiceAccount } from '../../services/googleServiceAccount';
 import { 
@@ -139,7 +137,7 @@ const ServiceAccountSetup: React.FC<ServiceAccountSetupProps> = ({ open, onClose
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
         <Box display="flex" alignItems="center" gap={1}>
-          <SecurityIcon color="primary" />
+          {/* <SecurityIcon color="primary" /> */}
           Cấu Hình Service Account
         </Box>
       </DialogTitle>
@@ -199,7 +197,7 @@ const ServiceAccountSetup: React.FC<ServiceAccountSetupProps> = ({ open, onClose
             <Button
               variant="outlined"
               component="label"
-              startIcon={<UploadIcon />}
+              startIcon={<CloudUploadIcon />}
               disabled={isLoading}
             >
               Chọn File Credentials.json
@@ -252,7 +250,7 @@ const ServiceAccountSetup: React.FC<ServiceAccountSetupProps> = ({ open, onClose
             variant="outlined"
             onClick={handleSyncData}
             disabled={!credentials || isLoading}
-            startIcon={isLoading ? <CircularProgress size={20} /> : <UploadIcon />}
+            startIcon={isLoading ? <CircularProgress size={20} /> : <CloudUploadIcon />}
           >
             {isLoading ? 'Đang đồng bộ...' : 'Đồng Bộ Dữ Liệu'}
           </Button>

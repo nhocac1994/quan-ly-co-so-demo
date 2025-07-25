@@ -11,7 +11,6 @@ import {
   Alert
 } from '@mui/material';
 import {
-  Sync as SyncIcon,
   CloudSync as CloudSyncIcon,
   Settings as SettingsIcon,
   Analytics as AnalyticsIcon,

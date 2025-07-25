@@ -1,25 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
+  Typography,
   Button,
   Card,
   CardContent,
-  Typography,
   Alert,
-  CircularProgress,
+  Paper,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Divider,
   Chip,
   IconButton,
   Tooltip
 } from '@mui/material';
 import {
-  CloudDownload as CloudDownloadIcon,
-  CloudUpload as CloudUploadIcon,
-  CloudSync as CloudSyncIcon,
+  Google as GoogleIcon,
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
   Refresh as RefreshIcon,
-  Login as LoginIcon,
-  BugReport as BugReportIcon
+  Settings as SettingsIcon
 } from '@mui/icons-material';
 import { googleOAuthService, initializeGoogleOAuth, syncDataWithOAuth } from '../../services/googleOAuth';
 import { 
@@ -167,6 +169,7 @@ const GoogleSheetsOAuth: React.FC = () => {
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleLogin = () => {
     try {
       googleOAuthService.initializeOAuth();
@@ -311,7 +314,7 @@ const GoogleSheetsOAuth: React.FC = () => {
             <Box display="flex" gap={1}>
               <Tooltip title="Debug Kết Nối">
                 <IconButton onClick={() => setShowDebug(true)}>
-                  <BugReportIcon />
+                  {/* <BugReportIcon /> */}
                 </IconButton>
               </Tooltip>
               <Tooltip title="Kiểm tra kết nối">
@@ -416,7 +419,7 @@ const GoogleSheetsOAuth: React.FC = () => {
               <>
                 <Button
                   variant="contained"
-                  startIcon={syncStatus.isSyncing ? <CircularProgress size={20} /> : <CloudUploadIcon />}
+                  startIcon={syncStatus.isSyncing ? <RefreshIcon /> : null}
                   onClick={syncToGoogleSheets}
                   disabled={syncStatus.isSyncing}
                   sx={{
@@ -430,7 +433,7 @@ const GoogleSheetsOAuth: React.FC = () => {
 
                 <Button
                   variant="outlined"
-                  startIcon={<CloudDownloadIcon />}
+                  startIcon={<RefreshIcon />}
                   onClick={syncFromGoogleSheets}
                   disabled={syncStatus.isSyncing}
                   sx={{
@@ -446,7 +449,7 @@ const GoogleSheetsOAuth: React.FC = () => {
                 </Button>
                 <Button
                   variant="outlined"
-                  startIcon={<CloudSyncIcon />}
+                  startIcon={null}
                   onClick={syncBidirectional}
                   disabled={syncStatus.isSyncing}
                   sx={{

@@ -1,7 +1,7 @@
 import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
+import { Box, Typography, Alert } from '@mui/material';
 import { useAuth } from '../../contexts/AuthContext';
-import { CircularProgress, Box } from '@mui/material';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -14,46 +14,37 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requiredPermission, 
   requiredRole 
 }) => {
-  const { isAuthenticated, user, hasPermission, hasRole } = useAuth();
-  const location = useLocation();
+  const { isAuthenticated, hasPermission, hasRole } = useAuth();
+  
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const user = useAuth().user;
 
-  // Nếu chưa đăng nhập, chuyển hướng đến trang login
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/login" replace />;
   }
 
-  // Nếu yêu cầu permission cụ thể
   if (requiredPermission && !hasPermission(requiredPermission)) {
     return (
-      <Box
-        display="flex"
-        flexDirection="column"
-        alignItems="center"
-        justifyContent="center"
-        minHeight="50vh"
-        p={4}
-      >
-        <h2>🔒 Không có quyền truy cập</h2>
-        <p>Bạn không có quyền truy cập trang này.</p>
-        <p>Yêu cầu quyền: {requiredPermission}</p>
+      <Box sx={{ p: 3, textAlign: 'center' }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          Bạn không có quyền truy cập trang này
+        </Alert>
+        <Typography variant="body2" color="text.secondary">
+          Yêu cầu quyền: {requiredPermission}
+        </Typography>
       </Box>
     );
   }
 
-  // Nếu yêu cầu role cụ thể
   if (requiredRole && !hasRole(requiredRole as any)) {
     return (
-      <Box
-        display="flex"
-        flexDirection="column"
-        alignItems="center"
-        justifyContent="center"
-        minHeight="50vh"
-        p={4}
-      >
-        <h2>🔒 Không có quyền truy cập</h2>
-        <p>Bạn không có quyền truy cập trang này.</p>
-        <p>Yêu cầu vai trò: {requiredRole}</p>
+      <Box sx={{ p: 3, textAlign: 'center' }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          Bạn không có quyền truy cập trang này
+        </Alert>
+        <Typography variant="body2" color="text.secondary">
+          Yêu cầu vai trò: {requiredRole}
+        </Typography>
       </Box>
     );
   }

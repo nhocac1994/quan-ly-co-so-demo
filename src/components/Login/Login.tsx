@@ -1,25 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Card,
-  CardContent,
-  TextField,
-  Button,
   Typography,
+  Button,
+  TextField,
   Alert,
-  CircularProgress,
+  Container,
   Paper,
-  Container
+  Grid,
+  Divider,
+  CircularProgress
 } from '@mui/material';
 import {
-  Lock as LockIcon,
-  Email as EmailIcon,
   Visibility as VisibilityIcon,
-  VisibilityOff as VisibilityOffIcon
+  VisibilityOff as VisibilityOffIcon,
+  Login as LoginIcon,
+  Email as EmailIcon,
+  Lock as LockIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { initializeSampleUsers, forceInitializeSampleUsers } from '../../data/sampleUsers';
+import { forceInitializeSampleUsers } from '../../data/sampleUsers';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -115,7 +116,7 @@ const Login: React.FC = () => {
           }}
         >
           <Box textAlign="center" mb={4}>
-            <LockIcon sx={{ fontSize: 48, mb: 2 }} />
+            <LoginIcon sx={{ fontSize: 48, mb: 2 }} />
             <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 1 }}>
               Đăng Nhập
             </Typography>

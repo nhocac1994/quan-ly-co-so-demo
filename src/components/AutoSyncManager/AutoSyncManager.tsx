@@ -2,29 +2,18 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
-  Button,
   Card,
   CardContent,
   Slider,
-  FormControl,
   FormControlLabel,
-  Radio,
-  RadioGroup,
   Switch,
   Alert,
-  CircularProgress,
   Chip,
   IconButton,
   Tooltip
 } from '@mui/material';
 import {
-  CloudSync as CloudSyncIcon,
-  CloudDownload as CloudDownloadIcon,
-  CloudUpload as CloudUploadIcon,
-  CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
-  Refresh as RefreshIcon,
-  Stop as StopIcon
+  Refresh as RefreshIcon
 } from '@mui/icons-material';
 import { 
   syncDataWithServiceAccount,
@@ -82,6 +71,7 @@ const AutoSyncManager: React.FC = () => {
   const intervalRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Load config từ localStorage
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const savedConfig = localStorage.getItem('autoSyncConfig');
     if (savedConfig) {

@@ -1,16 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
+  Box,
+  Typography,
   Grid,
   Card,
   CardContent,
-  Typography,
-  Box,
   Paper,
   List,
   ListItem,
   ListItemText,
   ListItemIcon,
   Chip,
+  IconButton,
+  Tooltip,
   CircularProgress,
   Button
 } from '@mui/material';
@@ -18,11 +20,22 @@ import {
   Devices as DevicesIcon,
   Business as BusinessIcon,
   History as HistoryIcon,
-  Warning as WarningIcon,
+  Notifications as NotificationsIcon,
+  TrendingUp as TrendingUpIcon,
+  TrendingDown as TrendingDownIcon,
   CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon
+  Error as ErrorIcon,
+  Warning as WarningIcon,
+  Info as InfoIcon,
+  Refresh as RefreshIcon
 } from '@mui/icons-material';
-import { thietBiService, coSoVatChatService, lichSuSuDungService, baoTriService } from '../../services/localStorage';
+import { 
+  thietBiService, 
+  coSoVatChatService, 
+  lichSuSuDungService, 
+  baoTriService, 
+  thongBaoService 
+} from '../../services/localStorage';
 import { ThietBi, CoSoVatChat, LichSuSuDung, BaoTri } from '../../types';
 import { createSampleData } from '../../utils/sampleData';
 
