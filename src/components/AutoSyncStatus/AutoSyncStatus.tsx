@@ -4,7 +4,6 @@ import {
   Chip,
   Tooltip,
   IconButton,
-  Typography,
   CircularProgress
 } from '@mui/material';
 import {
@@ -12,37 +11,43 @@ import {
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
   CloudSync as CloudSyncIcon,
-  Timer as TimerIcon
+  Timer as TimerIcon,
+  Queue as QueueIcon
 } from '@mui/icons-material';
 import { useAutoSync } from '../../contexts/AutoSyncContext';
 
 const AutoSyncStatus: React.FC = () => {
-  const { config, status, performManualSync } = useAutoSync();
+  const { config, status, performManualSync, forceSync } = useAutoSync();
 
   const getStatusColor = () => {
     if (status.error) return 'error';
-    if (status.isRunning) return 'warning';
+    if (status.isProcessing || status.isRunning) return 'warning';
     if (status.isConnected) return 'success';
     return 'default';
   };
 
   const getStatusIcon = () => {
-    if (status.isRunning) return <CircularProgress size={16} />;
+    if (status.isProcessing || status.isRunning) return <CircularProgress size={16} />;
     if (status.error) return <ErrorIcon fontSize="small" />;
     if (status.isConnected) return <CheckCircleIcon fontSize="small" />;
     return <CloudSyncIcon fontSize="small" />;
   };
 
   const getStatusText = () => {
-    if (status.isRunning) return 'Đang đồng bộ...';
+    if (status.isProcessing) return 'Đang đồng bộ...';
+    if (status.isRunning && config.mode === 'event-driven') return 'Event-driven';
     if (status.error) return 'Lỗi kết nối';
     if (status.isConnected) return 'Đã kết nối';
     return 'Chưa kết nối';
   };
 
   const handleManualSync = async () => {
-    if (!status.isRunning) {
-      await performManualSync();
+    if (!status.isProcessing && !status.isRunning) {
+      if (config.mode === 'event-driven') {
+        await forceSync();
+      } else {
+        await performManualSync();
+      }
     }
   };
 
@@ -62,6 +67,20 @@ const AutoSyncStatus: React.FC = () => {
           variant="outlined"
         />
       </Tooltip>
+
+      {/* Queue length (chỉ hiển thị cho event-driven) */}
+      {config.mode === 'event-driven' && status.queueLength > 0 && (
+        <Tooltip title={`${status.queueLength} thay đổi đang chờ đồng bộ`}>
+          <Chip
+            icon={<QueueIcon fontSize="small" />}
+            label={status.queueLength}
+            size="small"
+            variant="outlined"
+            color="warning"
+            sx={{ fontSize: '0.75rem', minWidth: 'auto' }}
+          />
+        </Tooltip>
+      )}
 
       {/* Thời gian đồng bộ cuối */}
       {status.lastSync && (
@@ -89,11 +108,11 @@ const AutoSyncStatus: React.FC = () => {
       )}
 
       {/* Nút đồng bộ thủ công */}
-      <Tooltip title="Đồng bộ thủ công">
+      <Tooltip title={config.mode === 'event-driven' ? 'Force sync ngay lập tức' : 'Đồng bộ thủ công'}>
         <IconButton
           size="small"
           onClick={handleManualSync}
-          disabled={status.isRunning}
+          disabled={status.isProcessing || status.isRunning}
           sx={{ 
             color: status.isConnected ? 'success.main' : 'error.main',
             '&:hover': { backgroundColor: 'rgba(0,0,0,0.04)' }

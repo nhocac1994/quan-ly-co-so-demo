@@ -3,6 +3,7 @@ import {
   initializeGoogleServiceAccountVercel, 
   syncDataWithServiceAccountVercel 
 } from '../services/googleServiceAccountVercel';
+import { syncEventService } from '../services/syncEventService';
 import { 
   thietBiService, 
   coSoVatChatService, 
@@ -14,8 +15,8 @@ import {
 
 interface AutoSyncConfig {
   isEnabled: boolean;
-  interval: number; // seconds
-  mode: 'upload' | 'download' | 'bidirectional';
+  mode: 'event-driven' | 'time-based';
+  interval: number; // seconds (chỉ dùng cho time-based)
   storageMode: 'local' | 'cloud' | 'hybrid';
 }
 
@@ -25,6 +26,8 @@ interface AutoSyncStatus {
   error: string | null;
   syncCount: number;
   isConnected: boolean;
+  queueLength: number;
+  isProcessing: boolean;
 }
 
 interface AutoSyncContextType {
@@ -35,6 +38,7 @@ interface AutoSyncContextType {
   stopAutoSync: () => void;
   performManualSync: () => Promise<void>;
   resetStats: () => void;
+  forceSync: () => Promise<void>;
 }
 
 const AutoSyncContext = createContext<AutoSyncContextType | undefined>(undefined);
@@ -55,11 +59,11 @@ const getConfigFromStorage = (): AutoSyncConfig => {
     }
   }
   
-  // Default config
+  // Default config - event-driven
   return {
     isEnabled: true,
-    interval: 3, // 3 seconds
-    mode: 'bidirectional',
+    mode: 'event-driven',
+    interval: 3,
     storageMode: 'hybrid'
   };
 };
@@ -71,11 +75,14 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     lastSync: null,
     error: null,
     syncCount: 0,
-    isConnected: false
+    isConnected: false,
+    queueLength: 0,
+    isProcessing: false
   });
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const isInitializedRef = useRef(false);
+  const statusUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Kiểm tra kết nối Google Sheets
   const checkConnection = useCallback(async (): Promise<boolean> => {
@@ -113,9 +120,20 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, []);
 
-  // Thực hiện đồng bộ
+  // Cập nhật trạng thái từ sync event service
+  const updateStatusFromEventService = useCallback(() => {
+    const queueStatus = syncEventService.getQueueStatus();
+    setStatus(prev => ({
+      ...prev,
+      queueLength: queueStatus.queueLength,
+      isProcessing: queueStatus.isProcessing,
+      lastSync: queueStatus.lastSyncTime ? new Date(queueStatus.lastSyncTime).toLocaleString('vi-VN') : prev.lastSync
+    }));
+  }, []);
+
+  // Thực hiện đồng bộ thủ công
   const performSync = useCallback(async () => {
-    if (!config.isEnabled || status.isRunning) return;
+    if (status.isRunning) return;
 
     try {
       setStatus(prev => ({ ...prev, isRunning: true, error: null }));
@@ -137,19 +155,8 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         nguoiDung: nguoiDungService.getAll()
       };
 
-      // Thực hiện đồng bộ theo mode
-      switch (config.mode) {
-        case 'upload':
-          await syncDataWithServiceAccountVercel(localStorageData);
-          break;
-        case 'download':
-          // TODO: Implement download sync
-          break;
-        case 'bidirectional':
-          await syncDataWithServiceAccountVercel(localStorageData);
-          // TODO: Implement bidirectional sync
-          break;
-      }
+      // Sync lên Google Sheets
+      await syncDataWithServiceAccountVercel(localStorageData);
 
       // Cập nhật trạng thái
       setStatus(prev => ({
@@ -160,7 +167,7 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         error: null
       }));
 
-      console.log(`✅ Auto-sync thành công (${config.mode}) - ${new Date().toLocaleString('vi-VN')}`);
+      console.log(`✅ Manual sync thành công - ${new Date().toLocaleString('vi-VN')}`);
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Lỗi không xác định';
@@ -169,9 +176,9 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         isRunning: false,
         error: `Lỗi đồng bộ: ${errorMessage}`
       }));
-      console.error('❌ Auto-sync lỗi:', error);
+      console.error('❌ Manual sync lỗi:', error);
     }
-  }, [config.isEnabled, config.mode, status.isRunning, checkConnection]);
+  }, [status.isRunning, checkConnection]);
 
   // Bắt đầu auto-sync
   const startAutoSync = useCallback(() => {
@@ -179,25 +186,41 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       clearInterval(intervalRef.current);
     }
 
-    if (config.isEnabled && config.interval > 0) {
-      // Thực hiện sync ngay lập tức
-      performSync();
-      
-      // Thiết lập interval
-      intervalRef.current = setInterval(performSync, config.interval * 1000);
-      
-      console.log(`🚀 Auto-sync đã bắt đầu (${config.interval}s interval)`);
+    if (config.isEnabled) {
+      if (config.mode === 'event-driven') {
+        // Event-driven mode - không cần interval
+        console.log('🚀 Event-driven sync đã được kích hoạt');
+        setStatus(prev => ({ ...prev, isRunning: true }));
+      } else {
+        // Time-based mode
+        if (config.interval > 0) {
+          // Thực hiện sync ngay lập tức
+          performSync();
+          
+          // Thiết lập interval
+          intervalRef.current = setInterval(performSync, config.interval * 1000);
+          
+          console.log(`🚀 Time-based sync đã bắt đầu (${config.interval}s interval)`);
+        }
+      }
     }
-  }, [config.isEnabled, config.interval, performSync]);
+  }, [config.isEnabled, config.mode, config.interval, performSync]);
 
   // Dừng auto-sync
   const stopAutoSync = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
-      console.log('⏹️ Auto-sync đã dừng');
     }
+    setStatus(prev => ({ ...prev, isRunning: false }));
+    console.log('⏹️ Auto-sync đã dừng');
   }, []);
+
+  // Force sync ngay lập tức
+  const forceSync = useCallback(async () => {
+    await syncEventService.forceSync();
+    updateStatusFromEventService();
+  }, [updateStatusFromEventService]);
 
   // Cập nhật config
   const updateConfig = useCallback((newConfig: Partial<AutoSyncConfig>) => {
@@ -226,6 +249,7 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       lastSync: null,
       error: null
     }));
+    syncEventService.clearQueue();
   }, []);
 
   // Khởi tạo khi component mount
@@ -240,14 +264,20 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (config.isEnabled) {
         startAutoSync();
       }
+
+      // Thiết lập interval để cập nhật trạng thái từ event service
+      statusUpdateIntervalRef.current = setInterval(updateStatusFromEventService, 1000);
     }
-  }, [checkConnection, config.isEnabled, startAutoSync]);
+  }, [checkConnection, config.isEnabled, startAutoSync, updateStatusFromEventService]);
 
   // Cleanup khi unmount
   useEffect(() => {
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+      }
+      if (statusUpdateIntervalRef.current) {
+        clearInterval(statusUpdateIntervalRef.current);
       }
     };
   }, []);
@@ -261,7 +291,7 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         stopAutoSync();
       }
     }
-  }, [config.isEnabled, config.interval, startAutoSync, stopAutoSync]);
+  }, [config.isEnabled, config.mode, config.interval, startAutoSync, stopAutoSync]);
 
   const value: AutoSyncContextType = {
     config,
@@ -270,7 +300,8 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     startAutoSync,
     stopAutoSync,
     performManualSync,
-    resetStats
+    resetStats,
+    forceSync
   };
 
   return (

@@ -1,15 +1,5 @@
 import { ThietBi, CoSoVatChat, LichSuSuDung, BaoTri, ThongBao, NguoiDung } from '../types';
-
-// Keys cho localStorage
-const STORAGE_KEYS = {
-  THIET_BI: 'thietBi',
-  CO_SO_VAT_CHAT: 'coSoVatChat',
-  LICH_SU_SU_DUNG: 'lichSuSuDung',
-  BAO_TRI: 'baoTri',
-  THONG_BAO: 'thongBao',
-  NGUOI_DUNG: 'nguoiDung',
-  NGUOI_DUNG_HIEN_TAI: 'nguoiDungHienTai'
-};
+import { triggerSyncEvent } from './syncEventService';
 
 // Helper functions
 const getFromStorage = <T>(key: string): T[] => {
@@ -17,7 +7,7 @@ const getFromStorage = <T>(key: string): T[] => {
     const data = localStorage.getItem(key);
     return data ? JSON.parse(data) : [];
   } catch (error) {
-    console.error(`Lỗi khi đọc dữ liệu từ localStorage (${key}):`, error);
+    console.error(`Error reading from localStorage (${key}):`, error);
     return [];
   }
 };
@@ -26,247 +16,378 @@ const saveToStorage = <T>(key: string, data: T[]): void => {
   try {
     localStorage.setItem(key, JSON.stringify(data));
   } catch (error) {
-    console.error(`Lỗi khi lưu dữ liệu vào localStorage (${key}):`, error);
+    console.error(`Error writing to localStorage (${key}):`, error);
   }
 };
 
-// Thiết bị
+// ThietBi Service
 export const thietBiService = {
-  getAll: (): ThietBi[] => getFromStorage<ThietBi>(STORAGE_KEYS.THIET_BI),
+  getAll: (): ThietBi[] => getFromStorage<ThietBi>('thietBi'),
   
-  getById: (id: string): ThietBi | undefined => {
-    const thietBi = getFromStorage<ThietBi>(STORAGE_KEYS.THIET_BI);
-    return thietBi.find(tb => tb.id === id);
-  },
-  
-  add: (thietBi: Omit<ThietBi, 'id' | 'ngayNhap' | 'ngayCapNhat'>): ThietBi => {
-    const thietBiList = getFromStorage<ThietBi>(STORAGE_KEYS.THIET_BI);
-    const newThietBi: ThietBi = {
-      ...thietBi,
-      id: Date.now().toString(),
-      ngayNhap: new Date().toISOString(),
-      ngayCapNhat: new Date().toISOString()
-    };
+  add: (thietBi: Omit<ThietBi, 'id'>): ThietBi => {
+    const thietBiList = getFromStorage<ThietBi>('thietBi');
+          const newThietBi: ThietBi = {
+        ...thietBi,
+        id: Date.now().toString(),
+        ngayNhap: new Date().toISOString(),
+        ngayCapNhat: new Date().toISOString()
+      };
     thietBiList.push(newThietBi);
-    saveToStorage(STORAGE_KEYS.THIET_BI, thietBiList);
+    saveToStorage('thietBi', thietBiList);
+    
+    // Trigger sync event
+    triggerSyncEvent('CREATE', 'thietBi', newThietBi);
+    
     return newThietBi;
   },
   
   update: (id: string, updates: Partial<ThietBi>): ThietBi | null => {
-    const thietBiList = getFromStorage<ThietBi>(STORAGE_KEYS.THIET_BI);
-    const index = thietBiList.findIndex(tb => tb.id === id);
+    const thietBiList = getFromStorage<ThietBi>('thietBi');
+    const index = thietBiList.findIndex(item => item.id === id);
     if (index !== -1) {
-      thietBiList[index] = {
+      const updatedThietBi = {
         ...thietBiList[index],
         ...updates,
         ngayCapNhat: new Date().toISOString()
       };
-      saveToStorage(STORAGE_KEYS.THIET_BI, thietBiList);
-      return thietBiList[index];
+      thietBiList[index] = updatedThietBi;
+      saveToStorage('thietBi', thietBiList);
+      
+      // Trigger sync event
+      triggerSyncEvent('UPDATE', 'thietBi', updatedThietBi);
+      
+      return updatedThietBi;
     }
     return null;
   },
   
   delete: (id: string): boolean => {
-    const thietBiList = getFromStorage<ThietBi>(STORAGE_KEYS.THIET_BI);
-    const filteredList = thietBiList.filter(tb => tb.id !== id);
-    if (filteredList.length !== thietBiList.length) {
-      saveToStorage(STORAGE_KEYS.THIET_BI, filteredList);
+    const thietBiList = getFromStorage<ThietBi>('thietBi');
+    const index = thietBiList.findIndex(item => item.id === id);
+    if (index !== -1) {
+      const deletedThietBi = thietBiList[index];
+      thietBiList.splice(index, 1);
+      saveToStorage('thietBi', thietBiList);
+      
+      // Trigger sync event
+      triggerSyncEvent('DELETE', 'thietBi', deletedThietBi);
+      
       return true;
     }
     return false;
+  },
+  
+  getById: (id: string): ThietBi | null => {
+    const thietBiList = getFromStorage<ThietBi>('thietBi');
+    return thietBiList.find(item => item.id === id) || null;
   }
 };
 
-// Cơ sở vật chất
+// CoSoVatChat Service
 export const coSoVatChatService = {
-  getAll: (): CoSoVatChat[] => getFromStorage<CoSoVatChat>(STORAGE_KEYS.CO_SO_VAT_CHAT),
+  getAll: (): CoSoVatChat[] => getFromStorage<CoSoVatChat>('coSoVatChat'),
   
-  getById: (id: string): CoSoVatChat | undefined => {
-    const coSoVatChat = getFromStorage<CoSoVatChat>(STORAGE_KEYS.CO_SO_VAT_CHAT);
-    return coSoVatChat.find(csvc => csvc.id === id);
-  },
-  
-  add: (coSoVatChat: Omit<CoSoVatChat, 'id' | 'ngayTao' | 'ngayCapNhat'>): CoSoVatChat => {
-    const coSoVatChatList = getFromStorage<CoSoVatChat>(STORAGE_KEYS.CO_SO_VAT_CHAT);
+  add: (coSoVatChat: Omit<CoSoVatChat, 'id'>): CoSoVatChat => {
+    const coSoVatChatList = getFromStorage<CoSoVatChat>('coSoVatChat');
     const newCoSoVatChat: CoSoVatChat = {
       ...coSoVatChat,
       id: Date.now().toString(),
-      ngayTao: new Date().toISOString(),
-      ngayCapNhat: new Date().toISOString()
+      ngayTao: new Date().toISOString()
     };
     coSoVatChatList.push(newCoSoVatChat);
-    saveToStorage(STORAGE_KEYS.CO_SO_VAT_CHAT, coSoVatChatList);
+    saveToStorage('coSoVatChat', coSoVatChatList);
+    
+    // Trigger sync event
+    triggerSyncEvent('CREATE', 'coSoVatChat', newCoSoVatChat);
+    
     return newCoSoVatChat;
   },
   
   update: (id: string, updates: Partial<CoSoVatChat>): CoSoVatChat | null => {
-    const coSoVatChatList = getFromStorage<CoSoVatChat>(STORAGE_KEYS.CO_SO_VAT_CHAT);
-    const index = coSoVatChatList.findIndex(csvc => csvc.id === id);
+    const coSoVatChatList = getFromStorage<CoSoVatChat>('coSoVatChat');
+    const index = coSoVatChatList.findIndex(item => item.id === id);
     if (index !== -1) {
-      coSoVatChatList[index] = {
+      const updatedCoSoVatChat = {
         ...coSoVatChatList[index],
         ...updates,
         ngayCapNhat: new Date().toISOString()
       };
-      saveToStorage(STORAGE_KEYS.CO_SO_VAT_CHAT, coSoVatChatList);
-      return coSoVatChatList[index];
+      coSoVatChatList[index] = updatedCoSoVatChat;
+      saveToStorage('coSoVatChat', coSoVatChatList);
+      
+      // Trigger sync event
+      triggerSyncEvent('UPDATE', 'coSoVatChat', updatedCoSoVatChat);
+      
+      return updatedCoSoVatChat;
     }
     return null;
   },
   
   delete: (id: string): boolean => {
-    const coSoVatChatList = getFromStorage<CoSoVatChat>(STORAGE_KEYS.CO_SO_VAT_CHAT);
-    const filteredList = coSoVatChatList.filter(csvc => csvc.id !== id);
-    if (filteredList.length !== coSoVatChatList.length) {
-      saveToStorage(STORAGE_KEYS.CO_SO_VAT_CHAT, filteredList);
+    const coSoVatChatList = getFromStorage<CoSoVatChat>('coSoVatChat');
+    const index = coSoVatChatList.findIndex(item => item.id === id);
+    if (index !== -1) {
+      const deletedCoSoVatChat = coSoVatChatList[index];
+      coSoVatChatList.splice(index, 1);
+      saveToStorage('coSoVatChat', coSoVatChatList);
+      
+      // Trigger sync event
+      triggerSyncEvent('DELETE', 'coSoVatChat', deletedCoSoVatChat);
+      
       return true;
     }
     return false;
+  },
+  
+  getById: (id: string): CoSoVatChat | null => {
+    const coSoVatChatList = getFromStorage<CoSoVatChat>('coSoVatChat');
+    return coSoVatChatList.find(item => item.id === id) || null;
   }
 };
 
-// Lịch sử sử dụng
+// LichSuSuDung Service
 export const lichSuSuDungService = {
-  getAll: (): LichSuSuDung[] => getFromStorage<LichSuSuDung>(STORAGE_KEYS.LICH_SU_SU_DUNG),
+  getAll: (): LichSuSuDung[] => getFromStorage<LichSuSuDung>('lichSuSuDung'),
   
-  getById: (id: string): LichSuSuDung | undefined => {
-    const lichSu = getFromStorage<LichSuSuDung>(STORAGE_KEYS.LICH_SU_SU_DUNG);
-    return lichSu.find(ls => ls.id === id);
-  },
-  
-  add: (lichSu: Omit<LichSuSuDung, 'id'>): LichSuSuDung => {
-    const lichSuList = getFromStorage<LichSuSuDung>(STORAGE_KEYS.LICH_SU_SU_DUNG);
-    const newLichSu: LichSuSuDung = {
-      ...lichSu,
-      id: Date.now().toString()
-    };
-    lichSuList.push(newLichSu);
-    saveToStorage(STORAGE_KEYS.LICH_SU_SU_DUNG, lichSuList);
-    return newLichSu;
+  add: (lichSuSuDung: Omit<LichSuSuDung, 'id'>): LichSuSuDung => {
+    const lichSuSuDungList = getFromStorage<LichSuSuDung>('lichSuSuDung');
+          const newLichSuSuDung: LichSuSuDung = {
+        ...lichSuSuDung,
+        id: Date.now().toString()
+      };
+    lichSuSuDungList.push(newLichSuSuDung);
+    saveToStorage('lichSuSuDung', lichSuSuDungList);
+    
+    // Trigger sync event
+    triggerSyncEvent('CREATE', 'lichSuSuDung', newLichSuSuDung);
+    
+    return newLichSuSuDung;
   },
   
   update: (id: string, updates: Partial<LichSuSuDung>): LichSuSuDung | null => {
-    const lichSuList = getFromStorage<LichSuSuDung>(STORAGE_KEYS.LICH_SU_SU_DUNG);
-    const index = lichSuList.findIndex(ls => ls.id === id);
+    const lichSuSuDungList = getFromStorage<LichSuSuDung>('lichSuSuDung');
+    const index = lichSuSuDungList.findIndex(item => item.id === id);
     if (index !== -1) {
-      lichSuList[index] = { ...lichSuList[index], ...updates };
-      saveToStorage(STORAGE_KEYS.LICH_SU_SU_DUNG, lichSuList);
-      return lichSuList[index];
+      const updatedLichSuSuDung = {
+        ...lichSuSuDungList[index],
+        ...updates,
+        ngayCapNhat: new Date().toISOString()
+      };
+      lichSuSuDungList[index] = updatedLichSuSuDung;
+      saveToStorage('lichSuSuDung', lichSuSuDungList);
+      
+      // Trigger sync event
+      triggerSyncEvent('UPDATE', 'lichSuSuDung', updatedLichSuSuDung);
+      
+      return updatedLichSuSuDung;
     }
     return null;
   },
   
-  getByThietBiId: (thietBiId: string): LichSuSuDung[] => {
-    const lichSuList = getFromStorage<LichSuSuDung>(STORAGE_KEYS.LICH_SU_SU_DUNG);
-    return lichSuList.filter(ls => ls.thietBiId === thietBiId);
+  delete: (id: string): boolean => {
+    const lichSuSuDungList = getFromStorage<LichSuSuDung>('lichSuSuDung');
+    const index = lichSuSuDungList.findIndex(item => item.id === id);
+    if (index !== -1) {
+      const deletedLichSuSuDung = lichSuSuDungList[index];
+      lichSuSuDungList.splice(index, 1);
+      saveToStorage('lichSuSuDung', lichSuSuDungList);
+      
+      // Trigger sync event
+      triggerSyncEvent('DELETE', 'lichSuSuDung', deletedLichSuSuDung);
+      
+      return true;
+    }
+    return false;
   },
   
-  getByCoSoVatChatId: (coSoVatChatId: string): LichSuSuDung[] => {
-    const lichSuList = getFromStorage<LichSuSuDung>(STORAGE_KEYS.LICH_SU_SU_DUNG);
-    return lichSuList.filter(ls => ls.coSoVatChatId === coSoVatChatId);
+  getById: (id: string): LichSuSuDung | null => {
+    const lichSuSuDungList = getFromStorage<LichSuSuDung>('lichSuSuDung');
+    return lichSuSuDungList.find(item => item.id === id) || null;
   }
 };
 
-// Bảo trì
+// BaoTri Service
 export const baoTriService = {
-  getAll: (): BaoTri[] => getFromStorage<BaoTri>(STORAGE_KEYS.BAO_TRI),
-  
-  getById: (id: string): BaoTri | undefined => {
-    const baoTri = getFromStorage<BaoTri>(STORAGE_KEYS.BAO_TRI);
-    return baoTri.find(bt => bt.id === id);
-  },
+  getAll: (): BaoTri[] => getFromStorage<BaoTri>('baoTri'),
   
   add: (baoTri: Omit<BaoTri, 'id'>): BaoTri => {
-    const baoTriList = getFromStorage<BaoTri>(STORAGE_KEYS.BAO_TRI);
-    const newBaoTri: BaoTri = {
-      ...baoTri,
-      id: Date.now().toString()
-    };
+    const baoTriList = getFromStorage<BaoTri>('baoTri');
+          const newBaoTri: BaoTri = {
+        ...baoTri,
+        id: Date.now().toString()
+      };
     baoTriList.push(newBaoTri);
-    saveToStorage(STORAGE_KEYS.BAO_TRI, baoTriList);
+    saveToStorage('baoTri', baoTriList);
+    
+    // Trigger sync event
+    triggerSyncEvent('CREATE', 'baoTri', newBaoTri);
+    
     return newBaoTri;
   },
   
   update: (id: string, updates: Partial<BaoTri>): BaoTri | null => {
-    const baoTriList = getFromStorage<BaoTri>(STORAGE_KEYS.BAO_TRI);
-    const index = baoTriList.findIndex(bt => bt.id === id);
+    const baoTriList = getFromStorage<BaoTri>('baoTri');
+    const index = baoTriList.findIndex(item => item.id === id);
     if (index !== -1) {
-      baoTriList[index] = { ...baoTriList[index], ...updates };
-      saveToStorage(STORAGE_KEYS.BAO_TRI, baoTriList);
-      return baoTriList[index];
+      const updatedBaoTri = {
+        ...baoTriList[index],
+        ...updates,
+        ngayCapNhat: new Date().toISOString()
+      };
+      baoTriList[index] = updatedBaoTri;
+      saveToStorage('baoTri', baoTriList);
+      
+      // Trigger sync event
+      triggerSyncEvent('UPDATE', 'baoTri', updatedBaoTri);
+      
+      return updatedBaoTri;
     }
     return null;
+  },
+  
+  delete: (id: string): boolean => {
+    const baoTriList = getFromStorage<BaoTri>('baoTri');
+    const index = baoTriList.findIndex(item => item.id === id);
+    if (index !== -1) {
+      const deletedBaoTri = baoTriList[index];
+      baoTriList.splice(index, 1);
+      saveToStorage('baoTri', baoTriList);
+      
+      // Trigger sync event
+      triggerSyncEvent('DELETE', 'baoTri', deletedBaoTri);
+      
+      return true;
+    }
+    return false;
+  },
+  
+  getById: (id: string): BaoTri | null => {
+    const baoTriList = getFromStorage<BaoTri>('baoTri');
+    return baoTriList.find(item => item.id === id) || null;
   }
 };
 
-// Thông báo
+// ThongBao Service
 export const thongBaoService = {
-  getAll: (): ThongBao[] => getFromStorage<ThongBao>(STORAGE_KEYS.THONG_BAO),
+  getAll: (): ThongBao[] => getFromStorage<ThongBao>('thongBao'),
   
-  getById: (id: string): ThongBao | undefined => {
-    const thongBao = getFromStorage<ThongBao>(STORAGE_KEYS.THONG_BAO);
-    return thongBao.find(tb => tb.id === id);
-  },
-  
-  add: (thongBao: Omit<ThongBao, 'id' | 'ngayTao'>): ThongBao => {
-    const thongBaoList = getFromStorage<ThongBao>(STORAGE_KEYS.THONG_BAO);
+  add: (thongBao: Omit<ThongBao, 'id'>): ThongBao => {
+    const thongBaoList = getFromStorage<ThongBao>('thongBao');
     const newThongBao: ThongBao = {
       ...thongBao,
       id: Date.now().toString(),
       ngayTao: new Date().toISOString()
     };
     thongBaoList.push(newThongBao);
-    saveToStorage(STORAGE_KEYS.THONG_BAO, thongBaoList);
+    saveToStorage('thongBao', thongBaoList);
+    
+    // Trigger sync event
+    triggerSyncEvent('CREATE', 'thongBao', newThongBao);
+    
     return newThongBao;
   },
   
   update: (id: string, updates: Partial<ThongBao>): ThongBao | null => {
-    const thongBaoList = getFromStorage<ThongBao>(STORAGE_KEYS.THONG_BAO);
-    const index = thongBaoList.findIndex(tb => tb.id === id);
+    const thongBaoList = getFromStorage<ThongBao>('thongBao');
+    const index = thongBaoList.findIndex(item => item.id === id);
     if (index !== -1) {
-      thongBaoList[index] = { ...thongBaoList[index], ...updates };
-      saveToStorage(STORAGE_KEYS.THONG_BAO, thongBaoList);
-      return thongBaoList[index];
+      const updatedThongBao = {
+        ...thongBaoList[index],
+        ...updates,
+        ngayCapNhat: new Date().toISOString()
+      };
+      thongBaoList[index] = updatedThongBao;
+      saveToStorage('thongBao', thongBaoList);
+      
+      // Trigger sync event
+      triggerSyncEvent('UPDATE', 'thongBao', updatedThongBao);
+      
+      return updatedThongBao;
     }
     return null;
   },
   
   delete: (id: string): boolean => {
-    const thongBaoList = getFromStorage<ThongBao>(STORAGE_KEYS.THONG_BAO);
-    const filteredList = thongBaoList.filter(tb => tb.id !== id);
-    if (filteredList.length !== thongBaoList.length) {
-      saveToStorage(STORAGE_KEYS.THONG_BAO, filteredList);
+    const thongBaoList = getFromStorage<ThongBao>('thongBao');
+    const index = thongBaoList.findIndex(item => item.id === id);
+    if (index !== -1) {
+      const deletedThongBao = thongBaoList[index];
+      thongBaoList.splice(index, 1);
+      saveToStorage('thongBao', thongBaoList);
+      
+      // Trigger sync event
+      triggerSyncEvent('DELETE', 'thongBao', deletedThongBao);
+      
       return true;
     }
     return false;
+  },
+  
+  getById: (id: string): ThongBao | null => {
+    const thongBaoList = getFromStorage<ThongBao>('thongBao');
+    return thongBaoList.find(item => item.id === id) || null;
   }
 };
 
-// Người dùng
+// NguoiDung Service
 export const nguoiDungService = {
-  getAll: (): NguoiDung[] => getFromStorage<NguoiDung>(STORAGE_KEYS.NGUOI_DUNG),
+  getAll: (): NguoiDung[] => getFromStorage<NguoiDung>('nguoiDung'),
   
-  getById: (id: string): NguoiDung | undefined => {
-    const nguoiDung = getFromStorage<NguoiDung>(STORAGE_KEYS.NGUOI_DUNG);
-    return nguoiDung.find(nd => nd.id === id);
+  add: (nguoiDung: Omit<NguoiDung, 'id'>): NguoiDung => {
+    const nguoiDungList = getFromStorage<NguoiDung>('nguoiDung');
+    const newNguoiDung: NguoiDung = {
+      ...nguoiDung,
+      id: Date.now().toString(),
+      ngayTao: new Date().toISOString()
+    };
+    nguoiDungList.push(newNguoiDung);
+    saveToStorage('nguoiDung', nguoiDungList);
+    
+    // Trigger sync event
+    triggerSyncEvent('CREATE', 'nguoiDung', newNguoiDung);
+    
+    return newNguoiDung;
   },
   
-  getCurrentUser: (): NguoiDung | null => {
-    try {
-      const data = localStorage.getItem(STORAGE_KEYS.NGUOI_DUNG_HIEN_TAI);
-      return data ? JSON.parse(data) : null;
-    } catch (error) {
-      return null;
+  update: (id: string, updates: Partial<NguoiDung>): NguoiDung | null => {
+    const nguoiDungList = getFromStorage<NguoiDung>('nguoiDung');
+    const index = nguoiDungList.findIndex(item => item.id === id);
+    if (index !== -1) {
+      const updatedNguoiDung = {
+        ...nguoiDungList[index],
+        ...updates,
+        ngayCapNhat: new Date().toISOString()
+      };
+      nguoiDungList[index] = updatedNguoiDung;
+      saveToStorage('nguoiDung', nguoiDungList);
+      
+      // Trigger sync event
+      triggerSyncEvent('UPDATE', 'nguoiDung', updatedNguoiDung);
+      
+      return updatedNguoiDung;
     }
+    return null;
   },
   
-  setCurrentUser: (user: NguoiDung | null): void => {
-    if (user) {
-      localStorage.setItem(STORAGE_KEYS.NGUOI_DUNG_HIEN_TAI, JSON.stringify(user));
-    } else {
-      localStorage.removeItem(STORAGE_KEYS.NGUOI_DUNG_HIEN_TAI);
+  delete: (id: string): boolean => {
+    const nguoiDungList = getFromStorage<NguoiDung>('nguoiDung');
+    const index = nguoiDungList.findIndex(item => item.id === id);
+    if (index !== -1) {
+      const deletedNguoiDung = nguoiDungList[index];
+      nguoiDungList.splice(index, 1);
+      saveToStorage('nguoiDung', nguoiDungList);
+      
+      // Trigger sync event
+      triggerSyncEvent('DELETE', 'nguoiDung', deletedNguoiDung);
+      
+      return true;
     }
+    return false;
+  },
+  
+  getById: (id: string): NguoiDung | null => {
+    const nguoiDungList = getFromStorage<NguoiDung>('nguoiDung');
+    return nguoiDungList.find(item => item.id === id) || null;
   }
 };
 
