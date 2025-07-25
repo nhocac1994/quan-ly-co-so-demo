@@ -1,7 +1,7 @@
 // Service quản lý sync events - đồng bộ ngay lập tức khi có thay đổi
 import { 
-  syncDataToGoogleSheetsAPI 
-} from './googleSheetsAPI';
+  syncDataToGoogleSheetsSimple 
+} from './googleSheetsSimple';
 
 export interface SyncEvent {
   type: 'CREATE' | 'UPDATE' | 'DELETE';
@@ -70,7 +70,7 @@ class SyncEventService {
       const currentData = this.getCurrentData();
       
       // Sync lên Google Sheets
-      await syncDataToGoogleSheetsAPI(currentData);
+      await syncDataToGoogleSheetsSimple(currentData);
       
       this.lastSyncTime = Date.now();
       

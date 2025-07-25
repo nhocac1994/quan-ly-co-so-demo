@@ -19,7 +19,7 @@ import {
   Refresh as RefreshIcon,
   ContentCopy as CopyIcon
 } from '@mui/icons-material';
-import { initializeGoogleSheetsAPI } from '../../services/googleSheetsAPI';
+import { initializeGoogleSheetsWithAPIKey } from '../../services/googleSheetsSimple';
 
 interface SetupStatus {
   isConnected: boolean;
@@ -48,11 +48,11 @@ const GoogleSheetsAPISetup: React.FC = () => {
     try {
       setStatus(prev => ({ ...prev, isTesting: true, error: null }));
 
-      if (!spreadsheetId || !apiKey) {
-        throw new Error('Vui lòng nhập đầy đủ Spreadsheet ID và API Key');
+      if (!apiKey) {
+        throw new Error('Vui lòng nhập Google API Key');
       }
 
-      const isConnected = await initializeGoogleSheetsAPI(spreadsheetId, apiKey);
+      const isConnected = await initializeGoogleSheetsWithAPIKey(apiKey);
 
       if (isConnected) {
         setStatus(prev => ({ 

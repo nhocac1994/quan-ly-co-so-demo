@@ -1,75 +1,104 @@
-// Service đơn giản để tích hợp với Google Sheets API sử dụng API Key
-import { DEFAULT_GOOGLE_SHEETS_CONFIG, GoogleSheetsConfig } from './googleSheets';
+// Service Google Sheets đơn giản - chỉ sử dụng API Key và Google Sheets API v4
+export interface GoogleSheetsConfig {
+  spreadsheetId: string;
+  apiKey: string;
+}
 
 class GoogleSheetsSimpleService {
   private config: GoogleSheetsConfig | null = null;
 
-  setConfig(config: GoogleSheetsConfig) {
-    this.config = config;
-  }
-
-  // Kiểm tra kết nối với Google Sheets
-  async testConnection(): Promise<boolean> {
-    if (!this.config) {
-      console.error('Chưa cấu hình Google Sheets');
+  // Khởi tạo service
+  async initialize(spreadsheetId: string, apiKey: string): Promise<boolean> {
+    try {
+      this.config = { spreadsheetId, apiKey };
+      
+      // Test connection ngay lập tức
+      const isConnected = await this.testConnection();
+      return isConnected;
+    } catch (error) {
+      console.error('Lỗi khởi tạo Google Sheets:', error);
       return false;
     }
+  }
 
+  // Test kết nối
+  async testConnection(): Promise<boolean> {
     try {
-      const response = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${this.config.spreadsheetId}?key=${this.config.apiKey}`
-      );
-      
-      if (response.ok) {
-        console.log('✅ Kết nối Google Sheets thành công!');
-        return true;
-      } else {
-        const errorData = await response.json();
-        console.error('❌ Lỗi kết nối Google Sheets:', errorData);
+      if (!this.config?.spreadsheetId || !this.config?.apiKey) {
         return false;
       }
-    } catch (error) {
-      console.error('❌ Lỗi khi test kết nối:', error);
-      return false;
-    }
-  }
 
-  // Đọc dữ liệu từ Google Sheets
-  async readRange(range: string): Promise<any[][]> {
-    if (!this.config) {
-      throw new Error('Chưa cấu hình Google Sheets');
-    }
-
-    try {
       const response = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${this.config.spreadsheetId}/values/${range}?key=${this.config.apiKey}`
+        `https://sheets.googleapis.com/v4/spreadsheets/${this.config.spreadsheetId}?fields=properties.title&key=${this.config.apiKey}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
       );
 
       if (!response.ok) {
-        throw new Error(`Google Sheets API error: ${response.statusText}`);
+        console.error('Lỗi test connection:', response.status, response.statusText);
+        return false;
       }
 
       const data = await response.json();
-      return data.values || [];
+      console.log('✅ Kết nối thành công với Google Sheets:', data.properties.title);
+      return true;
     } catch (error) {
-      console.error(`Lỗi khi đọc range ${range}:`, error);
-      throw error;
+      console.error('Lỗi test connection:', error);
+      return false;
     }
   }
 
-  // Ghi dữ liệu vào Google Sheets
-  async writeRange(range: string, values: any[][]): Promise<void> {
-    if (!this.config) {
-      throw new Error('Chưa cấu hình Google Sheets');
-    }
-
+  // Đọc dữ liệu từ sheet
+  async readSheet(sheetName: string): Promise<any[][]> {
     try {
+      if (!this.config) {
+        throw new Error('Chưa khởi tạo service');
+      }
+
       const response = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${this.config.spreadsheetId}/values/${range}?valueInputOption=RAW&key=${this.config.apiKey}`,
+        `https://sheets.googleapis.com/v4/spreadsheets/${this.config.spreadsheetId}/values/${sheetName}!A:Z?key=${this.config.apiKey}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Lỗi đọc sheet: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log(`✅ Đọc thành công sheet ${sheetName}:`, data.values?.length || 0, 'rows');
+      return data.values || [];
+    } catch (error) {
+      console.error(`❌ Lỗi đọc sheet ${sheetName}:`, error);
+      throw new Error(`Không thể đọc dữ liệu từ sheet ${sheetName}`);
+    }
+  }
+
+  // Ghi dữ liệu vào sheet (sử dụng batchUpdate)
+  async writeSheet(sheetName: string, values: any[][]): Promise<void> {
+    try {
+      if (!this.config) {
+        throw new Error('Chưa khởi tạo service');
+      }
+
+      // Xóa dữ liệu cũ trước
+      await this.clearSheet(sheetName);
+
+      // Ghi dữ liệu mới
+      const response = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${this.config.spreadsheetId}/values/${sheetName}!A1?valueInputOption=RAW&key=${this.config.apiKey}`,
         {
           method: 'PUT',
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             values: values
@@ -78,61 +107,44 @@ class GoogleSheetsSimpleService {
       );
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Google Sheets API error: ${JSON.stringify(errorData)}`);
+        const errorText = await response.text();
+        throw new Error(`Lỗi ghi sheet: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
-      console.log(`✅ Đã ghi dữ liệu vào range ${range}`);
+      console.log(`✅ Ghi thành công sheet ${sheetName}:`, values.length, 'rows');
     } catch (error) {
-      console.error(`❌ Lỗi khi ghi range ${range}:`, error);
-      throw error;
+      console.error(`❌ Lỗi ghi sheet ${sheetName}:`, error);
+      throw new Error(`Không thể ghi dữ liệu vào sheet ${sheetName}`);
     }
   }
 
-  // Đồng bộ dữ liệu từ localStorage lên Google Sheets
-  async syncToGoogleSheets(localData: any, sheetName: string): Promise<void> {
-    if (!this.config) {
-      throw new Error('Chưa cấu hình Google Sheets');
-    }
-
+  // Xóa dữ liệu trong sheet
+  async clearSheet(sheetName: string): Promise<void> {
     try {
-      // Chuyển đổi dữ liệu thành format phù hợp cho Google Sheets
-      const values = this.convertDataToSheetFormat(localData);
-      
-      // Ghi dữ liệu lên Google Sheets
-      const range = this.config.ranges[sheetName as keyof typeof this.config.ranges];
-      await this.writeRange(range, values);
-      console.log(`✅ Đã đồng bộ dữ liệu ${sheetName} lên Google Sheets`);
+      if (!this.config) {
+        throw new Error('Chưa khởi tạo service');
+      }
+
+      const response = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${this.config.spreadsheetId}/values/${sheetName}!A:Z:clear?key=${this.config.apiKey}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        console.warn(`Cảnh báo: Không thể xóa sheet ${sheetName}:`, response.status);
+      }
     } catch (error) {
-      console.error(`❌ Lỗi khi đồng bộ ${sheetName}:`, error);
-      throw error;
+      console.warn(`Cảnh báo: Lỗi xóa sheet ${sheetName}:`, error);
     }
-  }
-
-  // Chuyển đổi dữ liệu từ localStorage sang format Google Sheets
-  private convertDataToSheetFormat(data: any[]): any[][] {
-    if (data.length === 0) return [];
-
-    // Lấy headers từ object đầu tiên
-    const headers = Object.keys(data[0]);
-    const rows = [headers];
-
-    // Thêm dữ liệu
-    data.forEach(item => {
-      const row = headers.map(header => {
-        const value = item[header];
-        if (value === null || value === undefined) return '';
-        if (typeof value === 'object') return JSON.stringify(value);
-        return String(value);
-      });
-      rows.push(row);
-    });
-
-    return rows;
   }
 
   // Đồng bộ tất cả dữ liệu
-  async syncAllData(localStorageData: {
+  async syncAllData(data: {
     thietBi: any[];
     coSoVatChat: any[];
     lichSuSuDung: any[];
@@ -140,98 +152,135 @@ class GoogleSheetsSimpleService {
     thongBao: any[];
     nguoiDung: any[];
   }): Promise<void> {
-    if (!this.config) {
-      throw new Error('Chưa cấu hình Google Sheets');
-    }
-
-    const syncPromises = [
-      this.syncToGoogleSheets(localStorageData.thietBi, 'thietBi'),
-      this.syncToGoogleSheets(localStorageData.coSoVatChat, 'coSoVatChat'),
-      this.syncToGoogleSheets(localStorageData.lichSuSuDung, 'lichSuSuDung'),
-      this.syncToGoogleSheets(localStorageData.baoTri, 'baoTri'),
-      this.syncToGoogleSheets(localStorageData.thongBao, 'thongBao'),
-      this.syncToGoogleSheets(localStorageData.nguoiDung, 'nguoiDung')
-    ];
-
     try {
-      await Promise.all(syncPromises);
-      console.log('✅ Đã đồng bộ tất cả dữ liệu lên Google Sheets');
+      console.log('🔄 Bắt đầu đồng bộ dữ liệu...');
+
+      const sheets = [
+        { name: 'ThietBi', data: data.thietBi },
+        { name: 'CoSoVatChat', data: data.coSoVatChat },
+        { name: 'LichSuSuDung', data: data.lichSuSuDung },
+        { name: 'BaoTri', data: data.baoTri },
+        { name: 'ThongBao', data: data.thongBao },
+        { name: 'NguoiDung', data: data.nguoiDung }
+      ];
+
+      for (const sheet of sheets) {
+        const sheetData = this.convertToSheetFormat(sheet.data);
+        await this.writeSheet(sheet.name, sheetData);
+        
+        // Delay nhỏ giữa các sheet để tránh rate limiting
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+
+      console.log('✅ Đồng bộ tất cả dữ liệu thành công!');
     } catch (error) {
-      console.error('❌ Lỗi khi đồng bộ dữ liệu:', error);
+      console.error('❌ Lỗi đồng bộ dữ liệu:', error);
+      throw new Error('Lỗi đồng bộ dữ liệu');
+    }
+  }
+
+  // Chuyển đổi dữ liệu sang format sheet
+  private convertToSheetFormat(data: any[]): any[][] {
+    if (data.length === 0) return [];
+    
+    const headers = Object.keys(data[0]);
+    const sheetData = [headers];
+    
+    data.forEach(item => {
+      const row = headers.map(header => {
+        const value = item[header];
+        // Xử lý các giá trị đặc biệt
+        if (value === null || value === undefined) return '';
+        if (typeof value === 'object') return JSON.stringify(value);
+        return String(value);
+      });
+      sheetData.push(row);
+    });
+    
+    return sheetData;
+  }
+
+  // Đọc tất cả dữ liệu từ Google Sheets
+  async readAllData(): Promise<{
+    thietBi: any[];
+    coSoVatChat: any[];
+    lichSuSuDung: any[];
+    baoTri: any[];
+    thongBao: any[];
+    nguoiDung: any[];
+  }> {
+    try {
+      console.log('📖 Bắt đầu đọc tất cả dữ liệu...');
+
+      const [thietBi, coSoVatChat, lichSuSuDung, baoTri, thongBao, nguoiDung] = await Promise.all([
+        this.readSheetData('ThietBi'),
+        this.readSheetData('CoSoVatChat'),
+        this.readSheetData('LichSuSuDung'),
+        this.readSheetData('BaoTri'),
+        this.readSheetData('ThongBao'),
+        this.readSheetData('NguoiDung')
+      ]);
+
+      console.log('✅ Đọc tất cả dữ liệu thành công!');
+      return { thietBi, coSoVatChat, lichSuSuDung, baoTri, thongBao, nguoiDung };
+    } catch (error) {
+      console.error('❌ Lỗi đọc tất cả dữ liệu:', error);
       throw error;
     }
   }
 
-  // Tạo template Google Sheets
-  async createTemplate(): Promise<void> {
-    if (!this.config) {
-      throw new Error('Chưa cấu hình Google Sheets');
-    }
-
-    const templateData = {
-      thietBi: [
-        ['id', 'ten', 'loai', 'soLuong', 'tinhTrang', 'moTa', 'ngayNhap', 'ngayCapNhat', 'viTri', 'nhaCungCap', 'giaTri'],
-        ['', 'Máy tính Dell', 'Máy tính', '10', 'suDung', 'Máy tính phòng lab', '', '', 'Phòng Lab 1', 'Dell', '15000000']
-      ],
-      coSoVatChat: [
-        ['id', 'ten', 'loai', 'sucChua', 'tinhTrang', 'moTa', 'viTri', 'ngayTao', 'ngayCapNhat', 'thietBiIds'],
-        ['', 'Phòng Lab 1', 'phongThiNghiem', '30', 'hoatDong', 'Phòng thí nghiệm CNTT', 'Tầng 2', '', '', '']
-      ],
-      lichSuSuDung: [
-        ['id', 'thietBiId', 'coSoVatChatId', 'nguoiMuon', 'vaiTro', 'ngayMuon', 'ngayTra', 'trangThai', 'lyDo', 'ghiChu'],
-        ['', '', '', 'Nguyễn Văn A', 'hocSinh', '', '', 'dangMuon', 'Học tập', '']
-      ],
-      baoTri: [
-        ['id', 'thietBiId', 'coSoVatChatId', 'loai', 'moTa', 'ngayBatDau', 'ngayKetThuc', 'trangThai', 'chiPhi', 'nguoiThucHien', 'ghiChu'],
-        ['', '', '', 'baoTri', 'Bảo trì định kỳ', '', '', 'chuaBatDau', '0', 'Nhân viên kỹ thuật', '']
-      ],
-      thongBao: [
-        ['id', 'tieuDe', 'noiDung', 'loai', 'doUuTien', 'ngayTao', 'ngayHetHan', 'trangThai', 'nguoiNhan'],
-        ['', 'Thông báo bảo trì', 'Sẽ bảo trì hệ thống vào ngày mai', 'baoTri', 'trungBinh', '', '', 'chuaDoc', '']
-      ],
-      nguoiDung: [
-        ['id', 'hoTen', 'email', 'vaiTro', 'lop', 'khoa', 'ngayTao', 'trangThai'],
-        ['', 'Admin', 'admin@school.com', 'quanTriVien', '', '', '', 'hoatDong']
-      ]
-    };
-
+  // Đọc dữ liệu từ một sheet và chuyển đổi thành objects
+  private async readSheetData(sheetName: string): Promise<any[]> {
     try {
-      await this.syncAllData(templateData);
-      console.log('✅ Đã tạo template Google Sheets');
+      const rawData = await this.readSheet(sheetName);
+      
+      if (rawData.length < 2) {
+        console.log(`📝 Sheet ${sheetName} trống hoặc chỉ có header`);
+        return [];
+      }
+
+      const headers = rawData[0];
+      const dataRows = rawData.slice(1);
+      
+      return dataRows.map(row => {
+        const obj: any = {};
+        headers.forEach((header: string, index: number) => {
+          if (row[index] !== undefined && row[index] !== '') {
+            obj[header] = row[index];
+          }
+        });
+        return obj;
+      });
     } catch (error) {
-      console.error('❌ Lỗi khi tạo template:', error);
-      throw error;
+      console.error(`❌ Lỗi đọc sheet ${sheetName}:`, error);
+      return [];
     }
   }
 }
 
+// Export service instance
 export const googleSheetsSimpleService = new GoogleSheetsSimpleService();
 
-// Hàm helper để khởi tạo Google Sheets với API key
-export const initializeGoogleSheetsWithAPIKey = async (apiKey: string): Promise<boolean> => {
-  try {
-    const config = {
-      ...DEFAULT_GOOGLE_SHEETS_CONFIG,
-      apiKey: apiKey
-    };
-    
-    googleSheetsSimpleService.setConfig(config);
-    const isConnected = await googleSheetsSimpleService.testConnection();
-    
-    if (isConnected) {
-      console.log('✅ Kết nối Google Sheets thành công!');
-      return true;
-    } else {
-      console.error('❌ Không thể kết nối với Google Sheets');
-      return false;
-    }
-  } catch (error) {
-    console.error('❌ Lỗi khi khởi tạo Google Sheets:', error);
+// Helper functions
+export const initializeGoogleSheetsWithAPIKey = async (
+  apiKey: string
+): Promise<boolean> => {
+  const spreadsheetId = process.env.REACT_APP_GOOGLE_SPREADSHEET_ID;
+  if (!spreadsheetId) {
+    console.error('❌ Chưa cấu hình REACT_APP_GOOGLE_SPREADSHEET_ID');
     return false;
   }
+  return await googleSheetsSimpleService.initialize(spreadsheetId, apiKey);
 };
 
-// Hàm helper để đồng bộ dữ liệu
-export const syncDataToGoogleSheetsSimple = async (localStorageData: any): Promise<void> => {
-  await googleSheetsSimpleService.syncAllData(localStorageData);
+export const syncDataToGoogleSheetsSimple = async (data: any): Promise<void> => {
+  await googleSheetsSimpleService.syncAllData(data);
+};
+
+export const readDataFromGoogleSheetsSimple = async (): Promise<any> => {
+  return await googleSheetsSimpleService.readAllData();
+};
+
+export const testGoogleSheetsSimpleConnection = async (): Promise<boolean> => {
+  return await googleSheetsSimpleService.testConnection();
 }; 
