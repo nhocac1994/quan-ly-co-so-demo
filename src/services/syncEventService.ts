@@ -1,6 +1,6 @@
 // Service quản lý sync events - đồng bộ ngay lập tức khi có thay đổi
 import { 
-  syncDataWithServiceAccountVercel 
+  syncDataToGoogleSheets 
 } from './googleServiceAccountVercel';
 
 export interface SyncEvent {
@@ -33,8 +33,8 @@ class SyncEventService {
       this.syncQueue = this.syncQueue.slice(-this.MAX_QUEUE_SIZE);
     }
 
-    // Không tự động schedule sync - chỉ queue events
-    // this.scheduleSync();
+    // Schedule sync
+    this.scheduleSync();
   }
 
   // Lên lịch sync với delay
@@ -70,7 +70,7 @@ class SyncEventService {
       const currentData = this.getCurrentData();
       
       // Sync lên Google Sheets
-      await syncDataWithServiceAccountVercel(currentData);
+      await syncDataToGoogleSheets(currentData);
       
       this.lastSyncTime = Date.now();
       

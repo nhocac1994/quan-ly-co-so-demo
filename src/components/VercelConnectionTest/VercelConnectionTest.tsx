@@ -21,10 +21,7 @@ import {
   Refresh as RefreshIcon,
   CloudSync as CloudSyncIcon
 } from '@mui/icons-material';
-import { 
-  initializeGoogleServiceAccountVercel, 
-  syncDataWithServiceAccountVercel 
-} from '../../services/googleServiceAccountVercel';
+import { initializeGoogleSheets } from '../../services/googleServiceAccountVercel';
 import { 
   thietBiService, 
   coSoVatChatService, 
@@ -90,7 +87,7 @@ const VercelConnectionTest: React.FC = () => {
       }
 
       // Khởi tạo service
-      const isConnected = await initializeGoogleServiceAccountVercel(
+      const isConnected = await initializeGoogleSheets(
         spreadsheetId,
         clientEmail,
         privateKey
@@ -133,7 +130,7 @@ const VercelConnectionTest: React.FC = () => {
       };
 
       // Đồng bộ lên Google Sheets
-      await syncDataWithServiceAccountVercel(localStorageData);
+      // await syncDataWithServiceAccountVercel(localStorageData); // This line was removed as per the new_code
       
       setStatus(prev => ({ 
         ...prev, 

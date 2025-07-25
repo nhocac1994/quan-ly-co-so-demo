@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { 
-  initializeGoogleServiceAccountVercel, 
-  syncDataWithServiceAccountVercel 
+  initializeGoogleSheets, 
+  syncDataToGoogleSheets,
+  testGoogleSheetsConnection
 } from '../services/googleServiceAccountVercel';
 import { syncEventService } from '../services/syncEventService';
 import { 
@@ -60,7 +61,7 @@ const getConfigFromStorage = (): AutoSyncConfig => {
   
   // Default config - simplified
   return {
-    isEnabled: false, // Tắt auto sync mặc định
+    isEnabled: true, // Bật auto sync mặc định
     interval: 5, // 5 giây
     storageMode: 'hybrid'
   };
@@ -99,7 +100,7 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return false;
       }
 
-      const isConnected = await initializeGoogleServiceAccountVercel(
+      const isConnected = await initializeGoogleSheets(
         spreadsheetId,
         clientEmail,
         privateKey
@@ -159,7 +160,7 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       };
 
       // Sync lên Google Sheets
-      await syncDataWithServiceAccountVercel(localStorageData);
+      await syncDataToGoogleSheets(localStorageData);
 
       // Cập nhật trạng thái
       setStatus(prev => ({
@@ -246,11 +247,18 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (!isInitializedRef.current) {
       isInitializedRef.current = true;
       
-      // Không tự động check connection và start auto sync
-      // Chỉ thiết lập interval để cập nhật trạng thái từ event service
-      statusUpdateIntervalRef.current = setInterval(updateStatusFromEventService, 5000); // Tăng lên 5 giây
+      // Kiểm tra kết nối ban đầu
+      checkConnection();
+      
+      // Bắt đầu auto-sync nếu được enable
+      if (config.isEnabled) {
+        startAutoSync();
+      }
+
+      // Thiết lập interval để cập nhật trạng thái từ event service
+      statusUpdateIntervalRef.current = setInterval(updateStatusFromEventService, 5000);
     }
-  }, [updateStatusFromEventService]);
+  }, [checkConnection, config.isEnabled, startAutoSync, updateStatusFromEventService]);
 
   // Cleanup khi unmount
   useEffect(() => {

@@ -28,9 +28,7 @@ import {
   VisibilityOff as VisibilityOffIcon,
   ContentCopy as CopyIcon
 } from '@mui/icons-material';
-import { 
-  initializeGoogleServiceAccountVercel
-} from '../../services/googleServiceAccountVercel';
+import { initializeGoogleSheets } from '../../services/googleServiceAccountVercel';
 
 const VercelDebug: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -65,7 +63,7 @@ const VercelDebug: React.FC = () => {
         throw new Error('Thiếu environment variables. Vui lòng kiểm tra cấu hình trên Vercel.');
       }
 
-      const success = await initializeGoogleServiceAccountVercel(
+      const success = await initializeGoogleSheets(
         spreadsheetId,
         clientEmail,
         privateKey

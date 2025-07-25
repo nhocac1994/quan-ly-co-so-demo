@@ -1,6 +1,4 @@
-// Service sử dụng Service Account để truy cập Google Sheets trên Vercel
-// Sử dụng jose library tương thích với browser
-
+// Service Google Sheets mới - đơn giản và hiệu quả
 import * as jose from 'jose';
 
 export interface ServiceAccountConfig {
@@ -9,19 +7,29 @@ export interface ServiceAccountConfig {
   privateKey: string;
 }
 
-class GoogleServiceAccountVercelService {
+class GoogleSheetsService {
   private config: ServiceAccountConfig | null = null;
-  private accessToken: string | null = null;
+  private accessToken: string = '';
   private tokenExpiry: number | null = null;
 
-  setConfig(config: ServiceAccountConfig) {
-    this.config = config;
+  // Khởi tạo service
+  async initialize(spreadsheetId: string, clientEmail: string, privateKey: string): Promise<boolean> {
+    try {
+      this.config = { spreadsheetId, clientEmail, privateKey };
+      
+      // Test connection ngay lập tức
+      const isConnected = await this.testConnection();
+      return isConnected;
+    } catch (error) {
+      console.error('Lỗi khởi tạo Google Sheets:', error);
+      return false;
+    }
   }
 
-  // Tạo JWT token từ service account credentials
+  // Tạo JWT token đơn giản
   private async createJWT(): Promise<string> {
     if (!this.config) {
-      throw new Error('Chưa cấu hình Service Account');
+      throw new Error('Chưa khởi tạo service');
     }
 
     const { clientEmail, privateKey } = this.config;
@@ -29,23 +37,37 @@ class GoogleServiceAccountVercelService {
     const expiry = now + 3600; // 1 giờ
 
     try {
-      // Xử lý private key với nhiều format khác nhau
-      const processedPrivateKey = this.normalizePrivateKey(privateKey);
-      
-      // Import private key
-      const key = await jose.importPKCS8(processedPrivateKey, 'RS256');
+      // Xử lý private key đơn giản
+      const cleanKey = privateKey
+        .replace(/-----BEGIN PRIVATE KEY-----/, '')
+        .replace(/-----END PRIVATE KEY-----/, '')
+        .replace(/\s/g, '');
 
-      // Tạo JWT payload
-      const payload = {
+      // Thử decode base64
+      let decodedKey: string;
+      try {
+        // Thử URL-safe base64
+        const urlSafeKey = cleanKey.replace(/-/g, '+').replace(/_/g, '/');
+        decodedKey = atob(urlSafeKey);
+      } catch {
+        // Thử raw base64
+        decodedKey = atob(cleanKey);
+      }
+
+      // Import key
+      const key = await jose.importPKCS8(
+        `-----BEGIN PRIVATE KEY-----\n${cleanKey}\n-----END PRIVATE KEY-----`,
+        'RS256'
+      );
+
+      // Tạo JWT
+      const token = await new jose.SignJWT({
         iss: clientEmail,
         scope: 'https://www.googleapis.com/auth/spreadsheets',
         aud: 'https://oauth2.googleapis.com/token',
         exp: expiry,
         iat: now
-      };
-
-      // Ký JWT
-      const token = await new jose.SignJWT(payload)
+      })
         .setProtectedHeader({ alg: 'RS256', typ: 'JWT' })
         .setIssuedAt()
         .setExpirationTime(expiry)
@@ -53,169 +75,18 @@ class GoogleServiceAccountVercelService {
 
       return token;
     } catch (error) {
-      console.error('Lỗi khi tạo JWT:', error);
       throw new Error('Không thể tạo JWT token');
     }
   }
 
-  // Chuẩn hóa private key để đảm bảo đúng format PKCS#8
-  private normalizePrivateKey(privateKey: string): string {
-    // Loại bỏ tất cả whitespace và newlines
-    let cleanKey = privateKey.replace(/\s/g, '');
-    
-    // Kiểm tra nếu đã là PKCS#8 format
-    if (privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
-      return this.formatPEMKey(privateKey, 'PRIVATE KEY');
-    }
-    
-    // Kiểm tra nếu là RSA private key format
-    if (privateKey.includes('-----BEGIN RSA PRIVATE KEY-----')) {
-      return this.convertRSAtoPKCS8(privateKey);
-    }
-    
-    // Thử nhiều cách xử lý base64
-    const methods = [
-      // Method 1: URL-safe base64 với padding
-      () => {
-        const urlSafeKey = cleanKey.replace(/-/g, '+').replace(/_/g, '/');
-        const paddedKey = this.addBase64Padding(urlSafeKey);
-        if (this.isValidBase64(paddedKey)) {
-          return this.formatPEMKey(paddedKey, 'PRIVATE KEY');
-        }
-        return null;
-      },
-      // Method 2: Raw base64 với padding
-      () => {
-        const paddedKey = this.addBase64Padding(cleanKey);
-        if (this.isValidBase64(paddedKey)) {
-          return this.formatPEMKey(paddedKey, 'PRIVATE KEY');
-        }
-        return null;
-      },
-      // Method 3: Thử decode trực tiếp
-      () => {
-        try {
-          atob(cleanKey);
-          return this.formatPEMKey(cleanKey, 'PRIVATE KEY');
-        } catch {
-          return null;
-        }
-      },
-      // Method 4: Thử với URL-safe không padding
-      () => {
-        const urlSafeKey = cleanKey.replace(/-/g, '+').replace(/_/g, '/');
-        try {
-          atob(urlSafeKey);
-          return this.formatPEMKey(urlSafeKey, 'PRIVATE KEY');
-        } catch {
-          return null;
-        }
-      }
-    ];
-    
-    // Thử từng method
-    for (const method of methods) {
-      try {
-        const result = method();
-        if (result) return result;
-      } catch {
-        continue;
-      }
-    }
-    
-    // Fallback cuối cùng: thử với format gốc
-    return this.formatPEMKey(privateKey, 'PRIVATE KEY');
-  }
-
-  // Thêm padding cho base64 nếu thiếu
-  private addBase64Padding(str: string): string {
-    const pad = str.length % 4;
-    if (pad) {
-      str += new Array(5 - pad).join('=');
-    }
-    return str;
-  }
-
-  // Kiểm tra string có phải là base64 hợp lệ không
-  private isValidBase64(str: string): boolean {
-    try {
-      return btoa(atob(str)) === str;
-    } catch {
-      return false;
-    }
-  }
-
-  // Format key thành PEM format
-  private formatPEMKey(keyContent: string, keyType: string): string {
-    // Loại bỏ header và footer nếu có
-    const cleanContent = keyContent
-      .replace(/-----BEGIN [^-]+-----/, '')
-      .replace(/-----END [^-]+-----/, '')
-      .replace(/\s/g, '');
-    
-    // Format thành 64 ký tự mỗi dòng
-    const formattedContent = cleanContent.match(/.{1,64}/g)?.join('\n') || cleanContent;
-    
-    return `-----BEGIN ${keyType}-----\n${formattedContent}\n-----END ${keyType}-----`;
-  }
-
-  // Chuyển đổi RSA private key sang PKCS#8 format
-  private convertRSAtoPKCS8(rsaPrivateKey: string): string {
-    try {
-      // Loại bỏ header và footer RSA
-      const keyContent = rsaPrivateKey
-        .replace(/-----BEGIN RSA PRIVATE KEY-----/, '')
-        .replace(/-----END RSA PRIVATE KEY-----/, '')
-        .replace(/\s/g, '');
-
-      // Thử decode base64 với nhiều cách
-      let binaryString: string;
-      try {
-        binaryString = atob(keyContent);
-      } catch (error) {
-        // Thử với URL-safe base64
-        const urlSafeKey = keyContent.replace(/-/g, '+').replace(/_/g, '/');
-        const paddedKey = this.addBase64Padding(urlSafeKey);
-        binaryString = atob(paddedKey);
-      }
-      
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-
-      // Tạo PKCS#8 header
-      const pkcs8Header = new Uint8Array([
-        0x30, 0x82, 0x04, 0x22, 0x02, 0x01, 0x00, 0x30,
-        0x0d, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7,
-        0x0d, 0x01, 0x01, 0x01, 0x05, 0x00, 0x04, 0x82,
-        0x04, 0x0c
-      ]);
-
-      // Kết hợp header và key content
-      const pkcs8Key = new Uint8Array(pkcs8Header.length + bytes.length);
-      pkcs8Key.set(pkcs8Header);
-      pkcs8Key.set(bytes, pkcs8Header.length);
-
-      // Encode base64 và format
-      const base64Key = btoa(String.fromCharCode.apply(null, Array.from(pkcs8Key)));
-      const formattedKey = base64Key.match(/.{1,64}/g)?.join('\n') || base64Key;
-
-      return `-----BEGIN PRIVATE KEY-----\n${formattedKey}\n-----END PRIVATE KEY-----`;
-    } catch (error) {
-      // Fallback: thử với format gốc
-      return this.formatPEMKey(rsaPrivateKey, 'PRIVATE KEY');
-    }
-  }
-
-  // Lấy access token từ Google OAuth2
+  // Lấy access token
   private async getAccessToken(): Promise<string> {
     if (this.accessToken && this.tokenExpiry && Date.now() < this.tokenExpiry) {
       return this.accessToken;
     }
 
     try {
-      const jwtToken = await this.createJWT();
+      const jwt = await this.createJWT();
       
       const response = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
@@ -224,24 +95,21 @@ class GoogleServiceAccountVercelService {
         },
         body: new URLSearchParams({
           grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-          assertion: jwtToken
+          assertion: jwt
         })
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Lỗi OAuth response:', errorText);
-        throw new Error(`Lỗi khi lấy access token: ${response.status} ${errorText}`);
+        throw new Error(`Lỗi OAuth: ${response.status}`);
       }
 
       const data = await response.json();
-      this.accessToken = data.access_token || null;
+      this.accessToken = data.access_token || '';
       this.tokenExpiry = Date.now() + ((data.expires_in || 3600) * 1000);
 
-      return this.accessToken || '';
+      return this.accessToken;
     } catch (error) {
-      console.error('Lỗi khi lấy access token:', error);
-      throw error;
+      throw new Error('Không thể lấy access token');
     }
   }
 
@@ -249,7 +117,7 @@ class GoogleServiceAccountVercelService {
   async testConnection(): Promise<boolean> {
     try {
       if (!this.config?.spreadsheetId) {
-        throw new Error('Chưa cấu hình Spreadsheet ID');
+        return false;
       }
 
       const accessToken = await this.getAccessToken();
@@ -263,161 +131,63 @@ class GoogleServiceAccountVercelService {
         }
       );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Lỗi test connection:', errorText);
-        throw new Error(`Lỗi khi test kết nối: ${response.status} ${errorText}`);
-      }
-
-      const data = await response.json();
-      console.log('✅ Kết nối thành công với Google Sheets:', data.properties.title);
-      return true;
+      return response.ok;
     } catch (error) {
-      console.error('❌ Lỗi test kết nối:', error);
       return false;
     }
   }
 
-  // Đọc dữ liệu từ Google Sheets với retry logic
-  async readRange(range: string): Promise<any[][]> {
-    const maxRetries = 3;
-    let lastError: Error | null = null;
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        const accessToken = await this.getAccessToken();
-        const response = await fetch(
-          `https://sheets.googleapis.com/v4/spreadsheets/${this.config?.spreadsheetId}/values/${range}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-
-        if (response.status === 429) {
-          // Rate limiting - wait with exponential backoff
-          const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
-          console.log(`Rate limited (429), waiting ${waitTime}ms before retry ${attempt}/${maxRetries}`);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-          continue;
-        }
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Lỗi khi đọc dữ liệu: ${response.status} ${errorText}`);
-        }
-
-        const data = await response.json();
-        return data.values || [];
-      } catch (error) {
-        lastError = error as Error;
-        console.error(`Lỗi khi đọc range (attempt ${attempt}/${maxRetries}):`, error);
-        
-        if (attempt < maxRetries) {
-          // Wait before retry
-          const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-        }
-      }
-    }
-
-    throw lastError || new Error('Tất cả các lần thử đều thất bại');
-  }
-
-  // Ghi dữ liệu vào Google Sheets với retry logic
-  async writeRange(range: string, values: any[][]): Promise<void> {
-    const maxRetries = 3;
-    let lastError: Error | null = null;
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        const accessToken = await this.getAccessToken();
-        const response = await fetch(
-          `https://sheets.googleapis.com/v4/spreadsheets/${this.config?.spreadsheetId}/values/${range}?valueInputOption=RAW`,
-          {
-            method: 'PUT',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              values: values
-            })
-          }
-        );
-
-        if (response.status === 429) {
-          // Rate limiting - wait with exponential backoff
-          const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
-          console.log(`Rate limited (429), waiting ${waitTime}ms before retry ${attempt}/${maxRetries}`);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-          continue;
-        }
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Lỗi khi ghi dữ liệu: ${response.status} ${errorText}`);
-        }
-
-        console.log('✅ Ghi dữ liệu thành công vào range:', range);
-        return;
-      } catch (error) {
-        lastError = error as Error;
-        console.error(`Lỗi khi ghi range (attempt ${attempt}/${maxRetries}):`, error);
-        
-        if (attempt < maxRetries) {
-          // Wait before retry
-          const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-        }
-      }
-    }
-
-    throw lastError || new Error('Tất cả các lần thử đều thất bại');
-  }
-
-  // Đồng bộ dữ liệu lên Google Sheets
-  async syncToGoogleSheets(localData: any[], sheetName: string): Promise<void> {
+  // Đọc dữ liệu từ sheet
+  async readSheet(sheetName: string): Promise<any[][]> {
     try {
-      const sheetRange = `${sheetName}!A:Z`;
-      const sheetData = this.convertDataToSheetFormat(localData);
-      
-      // Xóa dữ liệu cũ
-      await this.writeRange(sheetRange, []);
-      
-      // Ghi dữ liệu mới
-      if (sheetData.length > 0) {
-        await this.writeRange(sheetRange, sheetData);
+      const accessToken = await this.getAccessToken();
+      const response = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${this.config?.spreadsheetId}/values/${sheetName}!A:Z`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Lỗi đọc sheet: ${response.status}`);
       }
-      
-      console.log(`✅ Đồng bộ thành công ${localData.length} bản ghi lên sheet ${sheetName}`);
+
+      const data = await response.json();
+      return data.values || [];
     } catch (error) {
-      console.error(`❌ Lỗi khi đồng bộ sheet ${sheetName}:`, error);
-      throw error;
+      throw new Error('Không thể đọc dữ liệu từ Google Sheets');
     }
   }
 
-  // Chuyển đổi dữ liệu sang định dạng sheet
-  private convertDataToSheetFormat(data: any[]): any[][] {
-    if (data.length === 0) return [];
+  // Ghi dữ liệu vào sheet
+  async writeSheet(sheetName: string, values: any[][]): Promise<void> {
+    try {
+      const accessToken = await this.getAccessToken();
+      const response = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${this.config?.spreadsheetId}/values/${sheetName}!A:Z?valueInputOption=RAW`,
+        {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ values })
+        }
+      );
 
-    // Lấy headers từ object đầu tiên
-    const headers = Object.keys(data[0]);
-    const sheetData = [headers];
-
-    // Thêm dữ liệu
-    data.forEach(item => {
-      const row = headers.map(header => item[header] || '');
-      sheetData.push(row);
-    });
-
-    return sheetData;
+      if (!response.ok) {
+        throw new Error(`Lỗi ghi sheet: ${response.status}`);
+      }
+    } catch (error) {
+      throw new Error('Không thể ghi dữ liệu vào Google Sheets');
+    }
   }
 
   // Đồng bộ tất cả dữ liệu
-  async syncAllData(localStorageData: {
+  async syncAllData(data: {
     thietBi: any[];
     coSoVatChat: any[];
     lichSuSuDung: any[];
@@ -426,71 +196,58 @@ class GoogleServiceAccountVercelService {
     nguoiDung: any[];
   }): Promise<void> {
     try {
-      console.log('🔄 Bắt đầu đồng bộ tất cả dữ liệu...');
+      const sheets = [
+        { name: 'ThietBi', data: data.thietBi },
+        { name: 'CoSoVatChat', data: data.coSoVatChat },
+        { name: 'LichSuSuDung', data: data.lichSuSuDung },
+        { name: 'BaoTri', data: data.baoTri },
+        { name: 'ThongBao', data: data.thongBao },
+        { name: 'NguoiDung', data: data.nguoiDung }
+      ];
 
-      // Đồng bộ từng sheet với delay để tránh rate limiting
-      await this.syncToGoogleSheets(localStorageData.thietBi, 'ThietBi');
-      await this.delay(500); // Delay 500ms giữa các sheet
-      
-      await this.syncToGoogleSheets(localStorageData.coSoVatChat, 'CoSoVatChat');
-      await this.delay(500);
-      
-      await this.syncToGoogleSheets(localStorageData.lichSuSuDung, 'LichSuSuDung');
-      await this.delay(500);
-      
-      await this.syncToGoogleSheets(localStorageData.baoTri, 'BaoTri');
-      await this.delay(500);
-      
-      await this.syncToGoogleSheets(localStorageData.thongBao, 'ThongBao');
-      await this.delay(500);
-      
-      await this.syncToGoogleSheets(localStorageData.nguoiDung, 'NguoiDung');
-
-      console.log('✅ Đồng bộ tất cả dữ liệu thành công!');
+      for (const sheet of sheets) {
+        const sheetData = this.convertToSheetFormat(sheet.data);
+        await this.writeSheet(sheet.name, sheetData);
+        // Delay nhỏ giữa các sheet
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
     } catch (error) {
-      console.error('❌ Lỗi khi đồng bộ tất cả dữ liệu:', error);
-      throw error;
+      throw new Error('Lỗi đồng bộ dữ liệu');
     }
   }
 
-  // Helper function để delay
-  private async delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  // Xóa cấu hình
-  clearConfig() {
-    this.config = null;
-    this.accessToken = null;
-    this.tokenExpiry = null;
+  // Chuyển đổi dữ liệu sang format sheet
+  private convertToSheetFormat(data: any[]): any[][] {
+    if (data.length === 0) return [];
+    
+    const headers = Object.keys(data[0]);
+    const sheetData = [headers];
+    
+    data.forEach(item => {
+      const row = headers.map(header => item[header] || '');
+      sheetData.push(row);
+    });
+    
+    return sheetData;
   }
 }
 
-export const googleServiceAccountVercelService = new GoogleServiceAccountVercelService();
+// Export service instance
+export const googleSheetsService = new GoogleSheetsService();
 
 // Helper functions
-export const initializeGoogleServiceAccountVercel = async (
+export const initializeGoogleSheets = async (
   spreadsheetId: string,
   clientEmail: string,
   privateKey: string
 ): Promise<boolean> => {
-  try {
-    googleServiceAccountVercelService.setConfig({ 
-      spreadsheetId, 
-      clientEmail, 
-      privateKey 
-    });
-    return await googleServiceAccountVercelService.testConnection();
-  } catch (error) {
-    console.error('❌ Lỗi khi khởi tạo Service Account Vercel:', error);
-    return false;
-  }
+  return await googleSheetsService.initialize(spreadsheetId, clientEmail, privateKey);
 };
 
-export const syncDataWithServiceAccountVercel = async (localStorageData: any): Promise<void> => {
-  await googleServiceAccountVercelService.syncAllData(localStorageData);
+export const syncDataToGoogleSheets = async (data: any): Promise<void> => {
+  await googleSheetsService.syncAllData(data);
 };
 
-export const testConnectionVercel = async (): Promise<boolean> => {
-  return await googleServiceAccountVercelService.testConnection();
+export const testGoogleSheetsConnection = async (): Promise<boolean> => {
+  return await googleSheetsService.testConnection();
 }; 
