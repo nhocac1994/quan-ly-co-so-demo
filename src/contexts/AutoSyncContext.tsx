@@ -190,7 +190,6 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       
       // Thiết lập interval cho auto sync
       intervalRef.current = setInterval(performSync, config.interval * 1000);
-      console.log(`🔄 Auto sync đã bắt đầu (${config.interval}s interval)`);
       setStatus(prev => ({ ...prev, isRunning: true }));
     }
   }, [config.isEnabled, config.interval, performSync]);
@@ -202,7 +201,6 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       intervalRef.current = null;
     }
     setStatus(prev => ({ ...prev, isRunning: false }));
-    console.log('⏹️ Auto-sync đã dừng');
   }, []);
 
   // Force sync ngay lập tức

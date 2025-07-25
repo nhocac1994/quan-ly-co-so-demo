@@ -17,7 +17,7 @@ import {
 import { useAutoSync } from '../../contexts/AutoSyncContext';
 
 const AutoSyncStatus: React.FC = () => {
-  const { config, status, performManualSync, forceSync } = useAutoSync();
+  const { config, status, performManualSync } = useAutoSync();
 
   const getStatusColor = () => {
     if (status.error) return 'error';

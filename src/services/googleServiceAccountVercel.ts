@@ -61,80 +61,36 @@ class GoogleServiceAccountVercelService {
   // Chuẩn hóa private key để đảm bảo đúng format PKCS#8
   private normalizePrivateKey(privateKey: string): string {
     try {
-      console.log('🔍 Debug: Private key length:', privateKey.length);
-      console.log('🔍 Debug: Private key preview:', privateKey.substring(0, 100) + '...');
-      
       // Loại bỏ tất cả whitespace và newlines
       let cleanKey = privateKey.replace(/\s/g, '');
       
       // Kiểm tra nếu đã là PKCS#8 format
       if (privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
-        console.log('✅ Detected: PKCS#8 format');
         return this.formatPEMKey(privateKey, 'PRIVATE KEY');
       }
       
       // Kiểm tra nếu là RSA private key format
       if (privateKey.includes('-----BEGIN RSA PRIVATE KEY-----')) {
-        console.log('✅ Detected: RSA Private Key format');
         return this.convertRSAtoPKCS8(privateKey);
       }
       
-      // Thử nhiều cách xử lý base64
-      const attempts = [
-        // Thử 1: Base64 gốc
-        () => {
-          if (this.isValidBase64(cleanKey)) {
-            console.log('✅ Detected: Raw Base64');
-            return this.formatPEMKey(cleanKey, 'PRIVATE KEY');
-          }
-          return null;
-        },
-        // Thử 2: URL-safe base64
-        () => {
-          const urlSafeKey = cleanKey.replace(/-/g, '+').replace(/_/g, '/');
-          if (this.isValidBase64(urlSafeKey)) {
-            console.log('✅ Detected: URL-safe Base64');
-            return this.formatPEMKey(urlSafeKey, 'PRIVATE KEY');
-          }
-          return null;
-        },
-        // Thử 3: Thêm padding nếu thiếu
-        () => {
-          const paddedKey = this.addBase64Padding(cleanKey);
-          if (this.isValidBase64(paddedKey)) {
-            console.log('✅ Detected: Base64 with padding');
-            return this.formatPEMKey(paddedKey, 'PRIVATE KEY');
-          }
-          return null;
-        },
-        // Thử 4: URL-safe với padding
-        () => {
-          const urlSafeKey = cleanKey.replace(/-/g, '+').replace(/_/g, '/');
-          const paddedKey = this.addBase64Padding(urlSafeKey);
-          if (this.isValidBase64(paddedKey)) {
-            console.log('✅ Detected: URL-safe Base64 with padding');
-            return this.formatPEMKey(paddedKey, 'PRIVATE KEY');
-          }
-          return null;
+      // Thử xử lý base64 đơn giản
+      try {
+        // Thử URL-safe base64 trước
+        const urlSafeKey = cleanKey.replace(/-/g, '+').replace(/_/g, '/');
+        const paddedKey = this.addBase64Padding(urlSafeKey);
+        
+        if (this.isValidBase64(paddedKey)) {
+          return this.formatPEMKey(paddedKey, 'PRIVATE KEY');
         }
-      ];
-      
-      // Thử từng cách
-      for (let i = 0; i < attempts.length; i++) {
-        try {
-          const result = attempts[i]();
-          if (result) return result;
-        } catch (error) {
-          console.log(`❌ Attempt ${i + 1} failed:`, error);
-        }
+      } catch (error) {
+        // Ignore error, try next method
       }
       
       // Fallback: thử với format gốc
-      console.warn('⚠️ Không thể xác định format private key, thử với format gốc');
       return this.formatPEMKey(privateKey, 'PRIVATE KEY');
       
     } catch (error) {
-      console.error('❌ Lỗi khi chuẩn hóa private key:', error);
       throw new Error('Private key không đúng định dạng');
     }
   }
@@ -174,8 +130,6 @@ class GoogleServiceAccountVercelService {
   // Chuyển đổi RSA private key sang PKCS#8 format
   private convertRSAtoPKCS8(rsaPrivateKey: string): string {
     try {
-      console.log('🔄 Converting RSA to PKCS#8...');
-      
       // Loại bỏ header và footer RSA
       const keyContent = rsaPrivateKey
         .replace(/-----BEGIN RSA PRIVATE KEY-----/, '')
@@ -192,7 +146,7 @@ class GoogleServiceAccountVercelService {
         const paddedKey = this.addBase64Padding(urlSafeKey);
         binaryString = atob(paddedKey);
       }
-
+      
       const bytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
@@ -215,12 +169,9 @@ class GoogleServiceAccountVercelService {
       const base64Key = btoa(String.fromCharCode.apply(null, Array.from(pkcs8Key)));
       const formattedKey = base64Key.match(/.{1,64}/g)?.join('\n') || base64Key;
 
-      console.log('✅ RSA to PKCS#8 conversion successful');
       return `-----BEGIN PRIVATE KEY-----\n${formattedKey}\n-----END PRIVATE KEY-----`;
     } catch (error) {
-      console.error('❌ Lỗi khi chuyển đổi RSA key:', error);
       // Fallback: thử với format gốc
-      console.log('🔄 Fallback: Using original format');
       return this.formatPEMKey(rsaPrivateKey, 'PRIVATE KEY');
     }
   }
