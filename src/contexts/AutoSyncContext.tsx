@@ -165,8 +165,6 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         error: null
       }));
 
-      console.log(`✅ Manual sync thành công - ${new Date().toLocaleString('vi-VN')}`);
-
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Lỗi không xác định';
       setStatus(prev => ({
@@ -174,7 +172,6 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         isRunning: false,
         error: `Lỗi đồng bộ: ${errorMessage}`
       }));
-      console.error('❌ Manual sync lỗi:', error);
     }
   }, [status.isRunning, checkConnection]);
 
@@ -244,7 +241,7 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (!isInitializedRef.current) {
       isInitializedRef.current = true;
       
-      // Kiểm tra kết nối ban đầu
+      // Kiểm tra kết nối ban đầu (chỉ 1 lần)
       checkConnection();
       
       // Bắt đầu auto-sync nếu được enable
@@ -253,7 +250,7 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
 
       // Thiết lập interval để cập nhật trạng thái từ event service
-      statusUpdateIntervalRef.current = setInterval(updateStatusFromEventService, 1000);
+      statusUpdateIntervalRef.current = setInterval(updateStatusFromEventService, 2000); // Tăng lên 2 giây
     }
   }, [checkConnection, config.isEnabled, startAutoSync, updateStatusFromEventService]);
 

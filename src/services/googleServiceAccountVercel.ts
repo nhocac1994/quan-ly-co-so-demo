@@ -60,39 +60,71 @@ class GoogleServiceAccountVercelService {
 
   // Chuẩn hóa private key để đảm bảo đúng format PKCS#8
   private normalizePrivateKey(privateKey: string): string {
-    try {
-      // Loại bỏ tất cả whitespace và newlines
-      let cleanKey = privateKey.replace(/\s/g, '');
-      
-      // Kiểm tra nếu đã là PKCS#8 format
-      if (privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
-        return this.formatPEMKey(privateKey, 'PRIVATE KEY');
-      }
-      
-      // Kiểm tra nếu là RSA private key format
-      if (privateKey.includes('-----BEGIN RSA PRIVATE KEY-----')) {
-        return this.convertRSAtoPKCS8(privateKey);
-      }
-      
-      // Thử xử lý base64 đơn giản
-      try {
-        // Thử URL-safe base64 trước
+    // Loại bỏ tất cả whitespace và newlines
+    let cleanKey = privateKey.replace(/\s/g, '');
+    
+    // Kiểm tra nếu đã là PKCS#8 format
+    if (privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
+      return this.formatPEMKey(privateKey, 'PRIVATE KEY');
+    }
+    
+    // Kiểm tra nếu là RSA private key format
+    if (privateKey.includes('-----BEGIN RSA PRIVATE KEY-----')) {
+      return this.convertRSAtoPKCS8(privateKey);
+    }
+    
+    // Thử nhiều cách xử lý base64
+    const methods = [
+      // Method 1: URL-safe base64 với padding
+      () => {
         const urlSafeKey = cleanKey.replace(/-/g, '+').replace(/_/g, '/');
         const paddedKey = this.addBase64Padding(urlSafeKey);
-        
         if (this.isValidBase64(paddedKey)) {
           return this.formatPEMKey(paddedKey, 'PRIVATE KEY');
         }
-      } catch (error) {
-        // Ignore error, try next method
+        return null;
+      },
+      // Method 2: Raw base64 với padding
+      () => {
+        const paddedKey = this.addBase64Padding(cleanKey);
+        if (this.isValidBase64(paddedKey)) {
+          return this.formatPEMKey(paddedKey, 'PRIVATE KEY');
+        }
+        return null;
+      },
+      // Method 3: Thử decode trực tiếp
+      () => {
+        try {
+          atob(cleanKey);
+          return this.formatPEMKey(cleanKey, 'PRIVATE KEY');
+        } catch {
+          return null;
+        }
+      },
+      // Method 4: Thử với URL-safe không padding
+      () => {
+        const urlSafeKey = cleanKey.replace(/-/g, '+').replace(/_/g, '/');
+        try {
+          atob(urlSafeKey);
+          return this.formatPEMKey(urlSafeKey, 'PRIVATE KEY');
+        } catch {
+          return null;
+        }
       }
-      
-      // Fallback: thử với format gốc
-      return this.formatPEMKey(privateKey, 'PRIVATE KEY');
-      
-    } catch (error) {
-      throw new Error('Private key không đúng định dạng');
+    ];
+    
+    // Thử từng method
+    for (const method of methods) {
+      try {
+        const result = method();
+        if (result) return result;
+      } catch {
+        continue;
+      }
     }
+    
+    // Fallback cuối cùng: thử với format gốc
+    return this.formatPEMKey(privateKey, 'PRIVATE KEY');
   }
 
   // Thêm padding cho base64 nếu thiếu

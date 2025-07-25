@@ -56,7 +56,7 @@ class SyncEventService {
 
     // Rate limiting - đảm bảo không sync quá nhanh
     const now = Date.now();
-    if (now - this.lastSyncTime < 1000) { // Tối thiểu 1 giây giữa các lần sync
+    if (now - this.lastSyncTime < 2000) { // Tăng lên 2 giây để giảm retry
       this.scheduleSync();
       return;
     }
@@ -75,18 +75,18 @@ class SyncEventService {
       this.lastSyncTime = Date.now();
       
     } catch (error) {
-      console.error('❌ Sync failed:', error);
+      // Thêm lại events vào queue để retry (chỉ 1 lần)
+      if (events.length > 0) {
+        this.syncQueue.unshift(...events);
+      }
       
-      // Thêm lại events vào queue để retry
-      this.syncQueue.unshift(...events);
-      
-      // Retry sau 5 giây
+      // Retry sau 10 giây (tăng thời gian chờ)
       setTimeout(() => {
         this.isProcessing = false;
         if (this.syncQueue.length > 0) {
           this.scheduleSync();
         }
-      }, 5000);
+      }, 10000);
       
       return;
     }
