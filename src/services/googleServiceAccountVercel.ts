@@ -29,20 +29,9 @@ class GoogleServiceAccountVercelService {
     const expiry = now + 3600; // 1 giờ
 
     try {
-      // Xử lý private key - đảm bảo đúng định dạng PKCS#8
-      let processedPrivateKey = privateKey;
+      // Xử lý private key với nhiều format khác nhau
+      const processedPrivateKey = this.normalizePrivateKey(privateKey);
       
-      // Nếu private key không có header PKCS#8, thêm vào
-      if (!privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
-        if (privateKey.includes('-----BEGIN RSA PRIVATE KEY-----')) {
-          // Chuyển đổi từ RSA private key sang PKCS#8
-          processedPrivateKey = this.convertRSAtoPKCS8(privateKey);
-        } else {
-          // Thêm header PKCS#8 nếu chưa có
-          processedPrivateKey = `-----BEGIN PRIVATE KEY-----\n${privateKey}\n-----END PRIVATE KEY-----`;
-        }
-      }
-
       // Import private key
       const key = await jose.importPKCS8(processedPrivateKey, 'RS256');
 
@@ -67,6 +56,66 @@ class GoogleServiceAccountVercelService {
       console.error('Lỗi khi tạo JWT:', error);
       throw new Error('Không thể tạo JWT token');
     }
+  }
+
+  // Chuẩn hóa private key để đảm bảo đúng format PKCS#8
+  private normalizePrivateKey(privateKey: string): string {
+    try {
+      // Loại bỏ tất cả whitespace và newlines
+      let cleanKey = privateKey.replace(/\s/g, '');
+      
+      // Kiểm tra nếu đã là PKCS#8 format
+      if (privateKey.includes('-----BEGIN PRIVATE KEY-----')) {
+        return this.formatPEMKey(privateKey, 'PRIVATE KEY');
+      }
+      
+      // Kiểm tra nếu là RSA private key format
+      if (privateKey.includes('-----BEGIN RSA PRIVATE KEY-----')) {
+        return this.convertRSAtoPKCS8(privateKey);
+      }
+      
+      // Nếu chỉ là base64 string, thêm header PKCS#8
+      if (this.isValidBase64(cleanKey)) {
+        return this.formatPEMKey(cleanKey, 'PRIVATE KEY');
+      }
+      
+      // Thử decode URL-safe base64
+      const urlSafeKey = cleanKey.replace(/-/g, '+').replace(/_/g, '/');
+      if (this.isValidBase64(urlSafeKey)) {
+        return this.formatPEMKey(urlSafeKey, 'PRIVATE KEY');
+      }
+      
+      // Fallback: thử với format gốc
+      console.warn('Không thể xác định format private key, thử với format gốc');
+      return this.formatPEMKey(privateKey, 'PRIVATE KEY');
+      
+    } catch (error) {
+      console.error('Lỗi khi chuẩn hóa private key:', error);
+      throw new Error('Private key không đúng định dạng');
+    }
+  }
+
+  // Kiểm tra string có phải là base64 hợp lệ không
+  private isValidBase64(str: string): boolean {
+    try {
+      return btoa(atob(str)) === str;
+    } catch {
+      return false;
+    }
+  }
+
+  // Format key thành PEM format
+  private formatPEMKey(keyContent: string, keyType: string): string {
+    // Loại bỏ header và footer nếu có
+    const cleanContent = keyContent
+      .replace(/-----BEGIN [^-]+-----/, '')
+      .replace(/-----END [^-]+-----/, '')
+      .replace(/\s/g, '');
+    
+    // Format thành 64 ký tự mỗi dòng
+    const formattedContent = cleanContent.match(/.{1,64}/g)?.join('\n') || cleanContent;
+    
+    return `-----BEGIN ${keyType}-----\n${formattedContent}\n-----END ${keyType}-----`;
   }
 
   // Chuyển đổi RSA private key sang PKCS#8 format
