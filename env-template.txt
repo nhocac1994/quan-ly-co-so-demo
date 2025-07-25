@@ -1,0 +1,18 @@
+# Google Sheets Service Account Configuration
+# Thay thế các giá trị bên dưới bằng thông tin thực từ Google Cloud Console
+
+# Spreadsheet ID - ID của Google Sheets (lấy từ URL)
+REACT_APP_GOOGLE_SPREADSHEET_ID=1FjhaEQdhER3mXQFm3lLtG08IsaUak1aL-gRDSOdI3No
+
+# Service Account Email - Email của Service Account
+REACT_APP_GOOGLE_SERVICE_ACCOUNT_EMAIL=your-service-account@your-project.iam.gserviceaccount.com
+
+# Private Key - Private key của Service Account (toàn bộ nội dung, bao gồm BEGIN và END)
+REACT_APP_GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...
+[Thay thế bằng private key thực của bạn]
+-----END PRIVATE KEY-----"
+
+# Các biến môi trường khác (tùy chọn)
+NODE_ENV=production
+REACT_APP_ENVIRONMENT=production 
