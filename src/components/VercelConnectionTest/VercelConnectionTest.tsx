@@ -19,12 +19,10 @@ import {
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
   Refresh as RefreshIcon,
-  CloudSync as CloudSyncIcon,
-  Settings as SettingsIcon
+  CloudSync as CloudSyncIcon
 } from '@mui/icons-material';
 import { 
   initializeGoogleServiceAccountVercel, 
-  testConnectionVercel,
   syncDataWithServiceAccountVercel 
 } from '../../services/googleServiceAccountVercel';
 import { 

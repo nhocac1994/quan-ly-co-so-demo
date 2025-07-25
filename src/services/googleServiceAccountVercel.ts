@@ -1,7 +1,7 @@
 // Service sử dụng Service Account để truy cập Google Sheets trên Vercel
-// Sử dụng jsonwebtoken thay vì Web Crypto API
+// Sử dụng jose library tương thích với browser
 
-import jwt from 'jsonwebtoken';
+import * as jose from 'jose';
 
 export interface ServiceAccountConfig {
   spreadsheetId: string;
@@ -28,24 +28,25 @@ class GoogleServiceAccountVercelService {
     const now = Math.floor(Date.now() / 1000);
     const expiry = now + 3600; // 1 giờ
 
-    // Tạo JWT payload
-    const payload = {
-      iss: clientEmail,
-      scope: 'https://www.googleapis.com/auth/spreadsheets',
-      aud: 'https://oauth2.googleapis.com/token',
-      exp: expiry,
-      iat: now
-    };
-
     try {
-      // Sử dụng jsonwebtoken để ký
-      const token = jwt.sign(payload, privateKey, { 
-        algorithm: 'RS256',
-        header: {
-          alg: 'RS256',
-          typ: 'JWT'
-        }
-      });
+      // Import private key
+      const key = await jose.importPKCS8(privateKey, 'RS256');
+
+      // Tạo JWT payload
+      const payload = {
+        iss: clientEmail,
+        scope: 'https://www.googleapis.com/auth/spreadsheets',
+        aud: 'https://oauth2.googleapis.com/token',
+        exp: expiry,
+        iat: now
+      };
+
+      // Ký JWT
+      const token = await new jose.SignJWT(payload)
+        .setProtectedHeader({ alg: 'RS256', typ: 'JWT' })
+        .setIssuedAt()
+        .setExpirationTime(expiry)
+        .sign(key);
 
       return token;
     } catch (error) {
