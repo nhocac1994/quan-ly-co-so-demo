@@ -6,7 +6,10 @@ import {
   Card,
   CardContent,
   Grid,
-  Alert
+  Alert,
+  useTheme,
+  useMediaQuery,
+  Portal
 } from '@mui/material';
 import {
   CloudSync as CloudSyncIcon,
@@ -20,6 +23,9 @@ import AutoSyncStatus from '../../components/AutoSyncStatus/AutoSyncStatus';
 import GoogleSheetsDebug from '../../components/GoogleSheetsDebug/GoogleSheetsDebug';
 
 const QuanLyDongBo: React.FC = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const { status } = useAutoSync();
 
@@ -33,42 +39,75 @@ const QuanLyDongBo: React.FC = () => {
   }, []);
 
   return (
-    <Container maxWidth={false} sx={{ py: 4, px: 3 }}>
-      {/* Header */}
-      <Box mb={4}>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 1 }}>
-          🔄 Quản Lý Đồng Bộ Dữ Liệu
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Quản lý và theo dõi việc đồng bộ dữ liệu với Google Sheets
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          Cập nhật lần cuối: {lastUpdate.toLocaleString('vi-VN')}
-        </Typography>
-      </Box>
+    <Box sx={{ p: { xs: 0, md: 3 }, pb: { xs: '100px', md: 3 } }}>
+      {/* Mobile Header */}
+      {isMobile && (
+        <Portal>
+          <Box
+            sx={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 1000,
+              backgroundColor: 'white',
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              pt: 2,
+              pb: 2,
+              px: 2,
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}
+          >
+            <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
+              🔄 Quản Lý Đồng Bộ
+            </Typography>
+          </Box>
+        </Portal>
+      )}
+
+      {/* Spacer for mobile header */}
+      {isMobile && <Box sx={{ height: '60px' }} />}
+
+      {/* Desktop Header */}
+      {!isMobile && (
+        <Box mb={4}>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 1 }}>
+            🔄 Quản Lý Đồng Bộ Dữ Liệu
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Quản lý và theo dõi việc đồng bộ dữ liệu với Google Sheets
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Cập nhật lần cuối: {lastUpdate.toLocaleString('vi-VN')}
+          </Typography>
+        </Box>
+      )}
 
       {/* Status Overview */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Grid container spacing={isMobile ? 2 : 3} sx={{ mb: isMobile ? 2 : 4 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ 
+          <Card className="stagger-item hover-lift" sx={{ 
             height: '100%',
+            borderRadius: 2,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
             transition: 'all 0.3s ease-in-out',
             '&:hover': {
               transform: 'translateY(-4px)',
               boxShadow: '0 8px 16px rgba(0,0,0,0.2)',
             }
           }}>
-            <CardContent>
+            <CardContent sx={{ p: isMobile ? 2 : 3 }}>
               <Box display="flex" alignItems="center">
                 <CloudSyncIcon 
                   color={status.isConnected ? "success" : "error"} 
-                  sx={{ fontSize: 40, mr: 2 }} 
+                  sx={{ fontSize: isMobile ? 32 : 40, mr: 2 }} 
                 />
                 <Box>
-                  <Typography variant="h4" color={status.isConnected ? "success.main" : "error.main"}>
+                  <Typography variant={isMobile ? "h5" : "h4"} color={status.isConnected ? "success.main" : "error.main"} sx={{ fontWeight: 600 }}>
                     {status.isConnected ? "Online" : "Offline"}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">
                     Trạng thái kết nối
                   </Typography>
                 </Box>
@@ -78,22 +117,24 @@ const QuanLyDongBo: React.FC = () => {
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ 
+          <Card className="stagger-item hover-lift" sx={{ 
             height: '100%',
+            borderRadius: 2,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
             transition: 'all 0.3s ease-in-out',
             '&:hover': {
               transform: 'translateY(-4px)',
               boxShadow: '0 8px 16px rgba(0,0,0,0.2)',
             }
           }}>
-            <CardContent>
+            <CardContent sx={{ p: isMobile ? 2 : 3 }}>
               <Box display="flex" alignItems="center">
-                <SettingsIcon color="primary" sx={{ fontSize: 40, mr: 2 }} />
+                <SettingsIcon color="primary" sx={{ fontSize: isMobile ? 32 : 40, mr: 2 }} />
                 <Box>
-                  <Typography variant="h4" color="primary">
+                  <Typography variant={isMobile ? "h5" : "h4"} color="primary" sx={{ fontWeight: 600 }}>
                     Config
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">
                     Cấu hình hệ thống
                   </Typography>
                 </Box>
@@ -103,23 +144,28 @@ const QuanLyDongBo: React.FC = () => {
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ 
+          <Card className="stagger-item hover-lift" sx={{ 
             height: '100%',
+            borderRadius: 2,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
             transition: 'all 0.3s ease-in-out',
             '&:hover': {
               transform: 'translateY(-4px)',
               boxShadow: '0 8px 16px rgba(0,0,0,0.2)',
             }
           }}>
-            <CardContent>
+            <CardContent sx={{ p: isMobile ? 2 : 3 }}>
               <Box display="flex" alignItems="center">
-                <CheckCircleIcon color="success" sx={{ fontSize: 40, mr: 2 }} />
+                <CheckCircleIcon 
+                  color={status.isRunning ? "success" : "disabled"} 
+                  sx={{ fontSize: isMobile ? 32 : 40, mr: 2 }} 
+                />
                 <Box>
-                  <Typography variant="h4" color="success.main">
-                    Auto
+                  <Typography variant={isMobile ? "h5" : "h4"} color={status.isRunning ? "success.main" : "text.disabled"} sx={{ fontWeight: 600 }}>
+                    {status.isRunning ? "Đang chạy" : "Dừng"}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Đồng bộ tự động
+                  <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">
+                    Trạng thái đồng bộ
                   </Typography>
                 </Box>
               </Box>
@@ -128,23 +174,28 @@ const QuanLyDongBo: React.FC = () => {
         </Grid>
 
         <Grid item xs={12} sm={6} md={3}>
-          <Card sx={{ 
+          <Card className="stagger-item hover-lift" sx={{ 
             height: '100%',
+            borderRadius: 2,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
             transition: 'all 0.3s ease-in-out',
             '&:hover': {
               transform: 'translateY(-4px)',
               boxShadow: '0 8px 16px rgba(0,0,0,0.2)',
             }
           }}>
-            <CardContent>
+            <CardContent sx={{ p: isMobile ? 2 : 3 }}>
               <Box display="flex" alignItems="center">
-                <ErrorIcon color="warning" sx={{ fontSize: 40, mr: 2 }} />
+                <ErrorIcon 
+                  color={status.error ? "error" : "disabled"} 
+                  sx={{ fontSize: isMobile ? 32 : 40, mr: 2 }} 
+                />
                 <Box>
-                  <Typography variant="h4" color="warning.main">
-                    Error
+                  <Typography variant={isMobile ? "h5" : "h4"} color={status.error ? "error.main" : "text.disabled"} sx={{ fontWeight: 600 }}>
+                    {status.error ? "Lỗi" : "OK"}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Lỗi kết nối
+                  <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">
+                    Trạng thái lỗi
                   </Typography>
                 </Box>
               </Box>
@@ -153,68 +204,68 @@ const QuanLyDongBo: React.FC = () => {
         </Grid>
       </Grid>
 
-      {/* Connection Status */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-            🔗 Trạng Thái Kết Nối
-          </Typography>
-          <AutoSyncStatus />
-        </CardContent>
-      </Card>
-
-      {/* Debug Tool */}
-      <GoogleSheetsDebug />
-
-      {/* Configuration */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-            ⚙️ Cấu Hình Đồng Bộ
+      {/* Auto Sync Manager */}
+      <Card className="stagger-item hover-lift" sx={{ 
+        mb: isMobile ? 2 : 4,
+        borderRadius: 2,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        '&:hover': {
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        },
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      }}>
+        <CardContent sx={{ p: isMobile ? 2 : 3 }}>
+          <Typography variant={isMobile ? "h6" : "h5"} gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
+            ⚙️ Cấu Hình Đồng Bộ Tự Động
           </Typography>
           <AutoSyncManager />
         </CardContent>
       </Card>
 
-      {/* Instructions */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-            📖 Hướng Dẫn Sử Dụng
+      {/* Auto Sync Status */}
+      <Card className="stagger-item hover-lift" sx={{ 
+        mb: isMobile ? 2 : 4,
+        borderRadius: 2,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        '&:hover': {
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        },
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      }}>
+        <CardContent sx={{ p: isMobile ? 2 : 3 }}>
+          <Typography variant={isMobile ? "h6" : "h5"} gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
+            📊 Trạng Thái Đồng Bộ
           </Typography>
-          <Alert severity="info" sx={{ mb: 2 }}>
-            <Typography variant="body2">
-              <strong>💡 Mẹo:</strong> Đảm bảo đã cấu hình đúng Service Account credentials trên Vercel
-            </Typography>
-          </Alert>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            • <strong>REACT_APP_GOOGLE_SPREADSHEET_ID:</strong> ID của Google Sheets
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            • <strong>REACT_APP_GOOGLE_SERVICE_ACCOUNT_EMAIL:</strong> Email của Service Account
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            • <strong>REACT_APP_GOOGLE_PRIVATE_KEY:</strong> Private key của Service Account
-          </Typography>
+          <AutoSyncStatus />
         </CardContent>
       </Card>
 
-      {/* Error Display */}
-      {status.error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          <Typography variant="body1">
-            <strong>Lỗi kết nối:</strong> {status.error}
+      {/* Google Sheets Debug */}
+      <Card className="stagger-item hover-lift" sx={{ 
+        borderRadius: 2,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        '&:hover': {
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        },
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      }}>
+        <CardContent sx={{ p: isMobile ? 2 : 3 }}>
+          <Typography variant={isMobile ? "h6" : "h5"} gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
+            🔧 Debug Google Sheets
           </Typography>
-        </Alert>
-      )}
+          <GoogleSheetsDebug />
+        </CardContent>
+      </Card>
 
-      {/* Footer */}
-      <Box mt={4}>
-        <Typography variant="body2" color="text.secondary" align="center">
-          🔒 Dữ liệu được bảo mật và đồng bộ an toàn với Google Sheets
-        </Typography>
-      </Box>
-    </Container>
+      {/* Mobile Last Update Info */}
+      {isMobile && (
+        <Box sx={{ mt: 2, textAlign: 'center' }}>
+          <Typography variant="caption" color="text.secondary">
+            Cập nhật: {lastUpdate.toLocaleString('vi-VN')}
+          </Typography>
+        </Box>
+      )}
+    </Box>
   );
 };
 

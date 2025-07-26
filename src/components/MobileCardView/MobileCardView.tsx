@@ -100,7 +100,7 @@ const MobileCardView: React.FC<MobileCardViewProps> = ({
     return null;
   }
 
-  const renderCardContent = (item: any) => {
+  const renderCardContent = (item: any, index: number) => {
     switch (type) {
       case 'thietBi':
         return (
@@ -114,7 +114,7 @@ const MobileCardView: React.FC<MobileCardViewProps> = ({
                   {item.tenThietBi || item.ten}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {item.maThietBi || item.ma || `ID: ${item.id}`}
+                  STT: {index + 1}
                 </Typography>
               </Box>
             </Box>
@@ -171,10 +171,10 @@ const MobileCardView: React.FC<MobileCardViewProps> = ({
               </Avatar>
               <Box flex={1}>
                 <Typography variant="h6" component="div" fontWeight={600}>
-                  {item.tenCoSo || item.ten}
+                  {item.ten}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {item.maCoSo || item.ma}
+                  STT: {index + 1}
                 </Typography>
               </Box>
             </Box>
@@ -182,21 +182,43 @@ const MobileCardView: React.FC<MobileCardViewProps> = ({
             <Grid container spacing={1} mb={2}>
               <Grid item xs={6}>
                 <Typography variant="caption" color="text.secondary">Loại:</Typography>
-                <Typography variant="body2">{item.loaiCoSo || item.loai}</Typography>
+                <Typography variant="body2">
+                  {item.loai === 'phongHoc' ? 'Phòng học' :
+                   item.loai === 'phongThiNghiem' ? 'Phòng thí nghiệm' :
+                   item.loai === 'sanBai' ? 'Sân bãi' :
+                   item.loai === 'thuVien' ? 'Thư viện' :
+                   item.loai === 'vanPhong' ? 'Văn phòng' :
+                   item.loai === 'khac' ? 'Khác' : item.loai}
+                </Typography>
               </Grid>
               <Grid item xs={6}>
-                <Typography variant="caption" color="text.secondary">Trạng thái:</Typography>
+                <Typography variant="caption" color="text.secondary">Sức chứa:</Typography>
+                <Typography variant="body2">{item.sucChua || 'Không xác định'}</Typography>
+              </Grid>
+              <Grid item xs={6}>
+                <Typography variant="caption" color="text.secondary">Tình trạng:</Typography>
                 <Chip 
-                  label={item.trangThai || 'Không xác định'} 
+                  label={item.tinhTrang === 'hoatDong' ? 'Hoạt động' :
+                         item.tinhTrang === 'baoTri' ? 'Bảo trì' :
+                         item.tinhTrang === 'ngungSuDung' ? 'Ngừng sử dụng' : 
+                         item.tinhTrang || 'Không xác định'} 
                   size="small"
-                  color={getStatusColor(item.trangThai)}
+                  color={item.tinhTrang === 'hoatDong' ? 'success' :
+                         item.tinhTrang === 'baoTri' ? 'warning' :
+                         item.tinhTrang === 'ngungSuDung' ? 'error' : 'default'}
                   sx={{ ml: 0.5 }}
                 />
               </Grid>
-              <Grid item xs={12}>
-                <Typography variant="caption" color="text.secondary">Mô tả:</Typography>
-                <Typography variant="body2">{item.moTa || 'Không có mô tả'}</Typography>
+              <Grid item xs={6}>
+                <Typography variant="caption" color="text.secondary">Vị trí:</Typography>
+                <Typography variant="body2">{item.viTri || 'Không xác định'}</Typography>
               </Grid>
+              {item.moTa && (
+                <Grid item xs={12}>
+                  <Typography variant="caption" color="text.secondary">Mô tả:</Typography>
+                  <Typography variant="body2">{item.moTa}</Typography>
+                </Grid>
+              )}
             </Grid>
           </>
         );
@@ -307,61 +329,42 @@ const MobileCardView: React.FC<MobileCardViewProps> = ({
   return (
     <Box sx={{ mt: 2 }}>
       {data.map((item, index) => (
-        <Card 
-          key={item.id || index} 
-          sx={{ 
-            mb: 2, 
+        <Card
+          key={item.id}
+          sx={{
+            mb: 2,
+            borderRadius: 2,
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
             '&:hover': {
               boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
               transform: 'translateY(-2px)',
             },
-            transition: 'all 0.3s ease'
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            cursor: 'pointer',
           }}
+          onClick={() => onView && onView(item)}
         >
-          <CardContent>
-            {renderCardContent(item)}
+          <CardContent sx={{ p: 2.5 }}>
+            {renderCardContent(item, index)}
             
             <Divider sx={{ my: 2 }} />
             
             <Box display="flex" justifyContent="flex-end" gap={1}>
-              {onView && (
-                <IconButton 
-                  size="small" 
-                  onClick={() => onView(item)}
-                  sx={{ color: theme.palette.info.main }}
-                >
-                  <ViewIcon />
-                </IconButton>
-              )}
-              
               {onQrCode && type === 'thietBi' && (
                 <IconButton 
                   size="small" 
                   onClick={() => onQrCode(item)}
-                  sx={{ color: theme.palette.primary.main }}
+                  sx={{ 
+                    color: theme.palette.primary.main,
+                    backgroundColor: 'rgba(25, 118, 210, 0.1)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(25, 118, 210, 0.2)',
+                      transform: 'scale(1.1)',
+                    },
+                    transition: 'all 0.3s ease'
+                  }}
                 >
                   <QrCodeIcon />
-                </IconButton>
-              )}
-              
-              {onEdit && (
-                <IconButton 
-                  size="small" 
-                  onClick={() => onEdit(item)}
-                  sx={{ color: theme.palette.warning.main }}
-                >
-                  <EditIcon />
-                </IconButton>
-              )}
-              
-              {onDelete && (
-                <IconButton 
-                  size="small" 
-                  onClick={() => onDelete(item)}
-                  sx={{ color: theme.palette.error.main }}
-                >
-                  <DeleteIcon />
                 </IconButton>
               )}
             </Box>

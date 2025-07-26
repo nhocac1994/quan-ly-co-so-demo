@@ -63,34 +63,20 @@ export const sampleUsers: NguoiDung[] = [
 
 // Hàm khởi tạo dữ liệu mẫu
 export const initializeSampleUsers = () => {
-  try {
-    const existingUsers = localStorage.getItem('nguoiDung');
-    if (!existingUsers) {
-      localStorage.setItem('nguoiDung', JSON.stringify(sampleUsers));
-      console.log('✅ Đã khởi tạo dữ liệu người dùng mẫu:', sampleUsers.length, 'người dùng');
-    } else {
-      console.log('ℹ️ Dữ liệu người dùng đã tồn tại');
-    }
-    
-    // Debug: Kiểm tra dữ liệu đã lưu
-    const savedUsers = localStorage.getItem('nguoiDung');
-    console.log('📊 Dữ liệu trong localStorage:', savedUsers);
-    
-    return true;
-  } catch (error) {
-    console.error('❌ Lỗi khi khởi tạo dữ liệu mẫu:', error);
-    return false;
+  const existingData = localStorage.getItem('nguoiDung');
+  
+  if (!existingData) {
+    localStorage.setItem('nguoiDung', JSON.stringify(sampleUsers));
+    // console.log('✅ Đã khởi tạo dữ liệu người dùng mẫu:', sampleUsers.length, 'người dùng');
+  } else {
+    // console.log('ℹ️ Dữ liệu người dùng đã tồn tại');
+    const savedUsers = JSON.parse(existingData);
+    // console.log('📊 Dữ liệu trong localStorage:', savedUsers);
   }
 };
 
 // Hàm force khởi tạo lại dữ liệu mẫu
 export const forceInitializeSampleUsers = () => {
-  try {
-    localStorage.setItem('nguoiDung', JSON.stringify(sampleUsers));
-    console.log('🔄 Đã force khởi tạo lại dữ liệu người dùng mẫu');
-    return true;
-  } catch (error) {
-    console.error('❌ Lỗi khi force khởi tạo dữ liệu mẫu:', error);
-    return false;
-  }
+  localStorage.setItem('nguoiDung', JSON.stringify(sampleUsers));
+  // console.log('🔄 Đã force khởi tạo lại dữ liệu người dùng mẫu');
 }; 

@@ -147,55 +147,38 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <Divider />
       <List sx={{ 
         flexGrow: 1, 
-        px: sidebarCollapsed ? 0 : 1,
+        px: sidebarCollapsed ? 0 : 2,
         display: 'flex',
         flexDirection: 'column',
         alignItems: sidebarCollapsed ? 'center' : 'stretch'
       }}>
-        {menuItems.map((item: any) => (
+        {menuItems.map((item, index) => (
           <ListItem
+            key={item.path}
             button
-            key={item.text}
-            onClick={() => {
-              navigate(item.path);
-              if (isMobile) {
-                setMobileOpen(false);
-              }
-            }}
-            selected={location.pathname === item.path}
+            onClick={() => navigate(item.path)}
+            className="hover-lift"
             sx={{
-              borderRadius: sidebarCollapsed ? '50%' : 1,
-              mb: sidebarCollapsed ? 1 : 0.5,
-              mx: sidebarCollapsed ? 1 : 0,
-              width: sidebarCollapsed ? 40 : 'auto',
-              height: sidebarCollapsed ? 40 : 'auto',
-              '&.Mui-selected': {
-                backgroundColor: theme.palette.primary.main,
-                color: 'white',
-                transform: sidebarCollapsed ? 'scale(1.05)' : 'none',
-                '&:hover': {
-                  backgroundColor: theme.palette.primary.dark,
-                  transform: sidebarCollapsed ? 'scale(1.15)' : 'none',
-                },
-                '& .MuiListItemIcon-root': {
-                  color: 'white',
-                },
-              },
+              mb: 1,
+              mx: 1,
+              borderRadius: 2,
+              backgroundColor: location.pathname === item.path ? 'primary.main' : 'transparent',
+              color: location.pathname === item.path ? 'white' : 'inherit',
+              border: location.pathname === item.path ? 'none' : '1px solid transparent',
               '&:hover': {
-                backgroundColor: theme.palette.action.hover,
-                transform: sidebarCollapsed ? 'scale(1.1)' : 'translateX(4px)',
+                backgroundColor: location.pathname === item.path ? 'primary.dark' : 'rgba(25, 118, 210, 0.08)',
+                transform: 'translateY(-1px)',
+                boxShadow: '0 2px 8px rgba(25, 118, 210, 0.15)',
+                borderColor: location.pathname === item.path ? 'transparent' : 'primary.main',
+                mx: 1,
+                borderRadius: 3,
               },
-              minHeight: 36,
-              justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-              transition: theme.transitions.create(['all', 'transform'], {
-                easing: theme.transitions.easing.easeInOut,
-                duration: theme.transitions.duration.standard,
-              }),
-              cursor: 'pointer',
+              transition: 'all 0.2s ease-out',
+              animation: `slideInFromLeft 0.3s ease-out ${index * 0.1}s both`
             }}
           >
-            <Tooltip 
-              title={sidebarCollapsed ? item.text : ''} 
+            <Tooltip
+              title={sidebarCollapsed ? item.text : ''}
               placement="right"
               disableHoverListener={!sidebarCollapsed}
               arrow
@@ -208,10 +191,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               }}
             >
               <ListItemIcon 
+                className="hover-rotate"
                 sx={{ 
                   color: location.pathname === item.path ? 'white' : 'inherit',
                   minWidth: sidebarCollapsed ? 0 : 40,
-                  mr: sidebarCollapsed ? 0 : 2
+                  mr: sidebarCollapsed ? 0 : 0,
+                  transition: 'transform 0.3s ease-out'
                 }}
               >
                 {item.icon}
@@ -251,6 +236,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           borderBottom: '1px solid',
           borderColor: 'divider',
           transform: 'translateX(0)',
+          display: { xs: 'none', md: 'block' }, // Ẩn header trên mobile
         }}
       >
         <Toolbar sx={{ minHeight: '64px !important' }}>
@@ -345,17 +331,20 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         component="main"
         sx={{
           flexGrow: 1,
-          p: { xs: 2, md: 3 },
+          px: { xs: 1, md: 2 }, // Giảm padding trái phải
+          py: { xs: 1, md: 3 }, // Giữ padding trên dưới
           width: { md: `calc(100% - ${currentDrawerWidth}px)` },
-          mt: '64px',
-          pb: { xs: '90px', md: 3 }, // Thêm padding bottom cho mobile
+          mt: { xs: 0, md: '64px' }, // Không có margin top trên mobile
+          pb: { xs: '120px', md: 3 }, // Tăng padding bottom cho mobile để tránh FAB
           backgroundColor: '#f5f5f5',
-          minHeight: 'calc(100vh - 64px)',
+          minHeight: { xs: '100vh', md: 'calc(100vh - 64px)' }, // Sửa minHeight cho mobile
           transition: theme.transitions.create(['margin', 'width'], {
             easing: theme.transitions.easing.easeInOut,
             duration: theme.transitions.duration.standard,
           }),
           transform: 'translateX(0)',
+          position: 'relative', // Thêm position relative
+          overflow: 'visible', // Cho phép overflow để FAB hiển thị
         }}
       >
         {children}

@@ -81,29 +81,18 @@ export const sampleEquipment: ThietBi[] = [
   }
 ];
 
-export const initializeSampleEquipment = (): boolean => {
-  try {
-    const existingData = localStorage.getItem('thietBi');
-    if (!existingData || JSON.parse(existingData).length === 0) {
-      localStorage.setItem('thietBi', JSON.stringify(sampleEquipment));
-      console.log('✅ Đã khởi tạo dữ liệu mẫu thiết bị');
-      return true;
-    }
-    console.log('ℹ️ Dữ liệu thiết bị đã tồn tại');
-    return false;
-  } catch (error) {
-    console.error('❌ Lỗi khi khởi tạo dữ liệu mẫu thiết bị:', error);
-    return false;
+export const initializeSampleEquipment = () => {
+  const existingData = localStorage.getItem('thietBi');
+  
+  if (!existingData) {
+    localStorage.setItem('thietBi', JSON.stringify(sampleEquipment));
+    // console.log('✅ Đã khởi tạo dữ liệu mẫu thiết bị');
+  } else {
+    // console.log('ℹ️ Dữ liệu thiết bị đã tồn tại');
   }
 };
 
-export const forceInitializeSampleEquipment = (): boolean => {
-  try {
-    localStorage.setItem('thietBi', JSON.stringify(sampleEquipment));
-    console.log('✅ Đã force khởi tạo dữ liệu mẫu thiết bị');
-    return true;
-  } catch (error) {
-    console.error('❌ Lỗi khi force khởi tạo dữ liệu mẫu thiết bị:', error);
-    return false;
-  }
+export const forceInitializeSampleEquipment = () => {
+  localStorage.setItem('thietBi', JSON.stringify(sampleEquipment));
+  // console.log('✅ Đã force khởi tạo dữ liệu mẫu thiết bị');
 }; 

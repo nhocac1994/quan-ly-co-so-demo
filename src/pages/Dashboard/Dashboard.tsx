@@ -12,7 +12,10 @@ import {
   ListItemIcon,
   Chip,
   CircularProgress,
-  Button
+  Button,
+  useTheme,
+  useMediaQuery,
+  Portal
 } from '@mui/material';
 import {
   Devices as DevicesIcon,
@@ -42,6 +45,9 @@ interface DashboardStats {
 }
 
 const Dashboard: React.FC = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
   const [stats, setStats] = useState<DashboardStats>({
     totalThietBi: 0,
     totalCoSoVatChat: 0,
@@ -99,110 +105,127 @@ const Dashboard: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'suDung':
-      case 'hoatDong':
-      case 'daTra':
-      case 'hoanThanh':
-        return 'success';
-      case 'hongHoc':
-      case 'ngungSuDung':
-      case 'quaHan':
-      case 'biHuy':
-        return 'error';
-      case 'baoTri':
-      case 'dangThucHien':
-      case 'dangMuon':
-        return 'warning';
-      default:
-        return 'default';
+      case 'dangMuon': return 'warning';
+      case 'daTra': return 'success';
+      case 'quaHan': return 'error';
+      case 'dangThucHien': return 'info';
+      case 'hoanThanh': return 'success';
+      case 'chuaBatDau': return 'default';
+      case 'biHuy': return 'error';
+      default: return 'default';
     }
   };
 
   const getStatusText = (status: string) => {
-    const statusMap: Record<string, string> = {
-      suDung: 'Đang sử dụng',
-      hongHoc: 'Hỏng hóc',
-      baoTri: 'Bảo trì',
-      ngungSuDung: 'Ngừng sử dụng',
-      hoatDong: 'Hoạt động',
-      dangThucHien: 'Đang thực hiện',
-      chuaBatDau: 'Chưa bắt đầu',
-      hoanThanh: 'Hoàn thành',
-      biHuy: 'Bị hủy',
-      dangMuon: 'Đang mượn',
-      daTra: 'Đã trả',
-      quaHan: 'Quá hạn'
-    };
-    return statusMap[status] || status;
+    switch (status) {
+      case 'dangMuon': return 'Đang mượn';
+      case 'daTra': return 'Đã trả';
+      case 'quaHan': return 'Quá hạn';
+      case 'dangThucHien': return 'Đang thực hiện';
+      case 'hoanThanh': return 'Hoàn thành';
+      case 'chuaBatDau': return 'Chưa bắt đầu';
+      case 'biHuy': return 'Bị hủy';
+      default: return status;
+    }
+  };
+
+  // Thêm hàm lấy tên thiết bị và cơ sở vật chất
+  const getThietBiName = (id?: string) => {
+    if (!id) return '';
+    const thietBiList = thietBiService.getAll();
+    const thietBi = thietBiList.find(tb => tb.id === id);
+    return thietBi ? thietBi.ten : '';
+  };
+  const getCoSoVatChatName = (id?: string) => {
+    if (!id) return '';
+    const coSoVatChatList = coSoVatChatService.getAll();
+    const csvc = coSoVatChatList.find(c => c.id === id);
+    return csvc ? csvc.ten : '';
+  };
+
+  const handleCreateSampleData = () => {
+    createSampleData();
+    loadDashboardData();
   };
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        p: { xs: 3, md: 3 }
+      }}>
         <CircularProgress />
       </Box>
     );
   }
 
   return (
-    <Box
-      sx={{
-        animation: 'fadeInUp 0.6s ease-out',
-        '@keyframes fadeInUp': {
-          '0%': {
-            opacity: 0,
-            transform: 'translateY(30px)',
-          },
-          '100%': {
-            opacity: 1,
-            transform: 'translateY(0)',
-          },
-        },
-      }}
-    >
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">
-          Tổng Quan Hệ Thống
-        </Typography>
-        <Button
-          variant="outlined"
-          onClick={() => {
-            createSampleData();
-            loadDashboardData();
-          }}
-          sx={{
-            transition: 'all 0.3s ease-in-out',
-            '&:hover': {
-              transform: 'translateY(-2px)',
-              boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
-            }
-          }}
-        >
-          Tạo Dữ Liệu Mẫu
-        </Button>
-      </Box>
-
-
-
-      {/* Thống kê tổng quan */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={4}>
-          <Card
+    <Box sx={{ p: { xs: 0, md: 3 }, pb: { xs: '100px', md: 3 } }}>
+      {/* Mobile Header */}
+      {isMobile && (
+        <Portal>
+          <Box
             sx={{
-              transition: 'all 0.3s ease-in-out',
-              '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: '0 8px 16px rgba(0,0,0,0.2)',
-              }
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 1000,
+              backgroundColor: 'white',
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              pt: 2,
+              pb: 2,
+              px: 2,
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
             }}
           >
-            <CardContent>
+            <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
+              🏠 Trang Chủ
+            </Typography>
+          </Box>
+        </Portal>
+      )}
+
+      {/* Spacer for mobile header */}
+      {isMobile && <Box sx={{ height: '60px' }} />}
+
+      {/* Desktop Header */}
+      {!isMobile && (
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
+            🏠 Trang Chủ - Dashboard
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Tổng quan hệ thống quản lý cơ sở vật chất và thiết bị
+          </Typography>
+        </Box>
+      )}
+
+      {/* Stats Cards */}
+      <Grid container spacing={isMobile ? 2 : 3} sx={{ mb: isMobile ? 2 : 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card className="stagger-item hover-lift" sx={{ 
+            borderRadius: 2,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            '&:hover': {
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              transform: 'translateY(-2px)',
+            },
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          }}>
+            <CardContent sx={{ p: isMobile ? 2 : 3 }}>
               <Box display="flex" alignItems="center">
-                <DevicesIcon color="primary" sx={{ fontSize: 40, mr: 2 }} />
+                <DevicesIcon color="primary" sx={{ fontSize: isMobile ? 32 : 40, mr: 2 }} />
                 <Box>
-                  <Typography variant="h4">{stats.totalThietBi}</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Tổng thiết bị
+                  <Typography variant={isMobile ? "h5" : "h4"} color="primary" sx={{ fontWeight: 700 }}>
+                    {stats.totalThietBi}
+                  </Typography>
+                  <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">
+                    Thiết bị
                   </Typography>
                 </Box>
               </Box>
@@ -210,22 +233,24 @@ const Dashboard: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={4}>
-          <Card
-            sx={{
-              transition: 'all 0.3s ease-in-out',
-              '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: '0 8px 16px rgba(0,0,0,0.2)',
-              }
-            }}
-          >
-            <CardContent>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card className="stagger-item hover-lift" sx={{ 
+            borderRadius: 2,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            '&:hover': {
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              transform: 'translateY(-2px)',
+            },
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          }}>
+            <CardContent sx={{ p: isMobile ? 2 : 3 }}>
               <Box display="flex" alignItems="center">
-                <BusinessIcon color="primary" sx={{ fontSize: 40, mr: 2 }} />
+                <BusinessIcon color="secondary" sx={{ fontSize: isMobile ? 32 : 40, mr: 2 }} />
                 <Box>
-                  <Typography variant="h4">{stats.totalCoSoVatChat}</Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant={isMobile ? "h5" : "h4"} color="secondary" sx={{ fontWeight: 700 }}>
+                    {stats.totalCoSoVatChat}
+                  </Typography>
+                  <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">
                     Cơ sở vật chất
                   </Typography>
                 </Box>
@@ -234,22 +259,24 @@ const Dashboard: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={4}>
-          <Card
-            sx={{
-              transition: 'all 0.3s ease-in-out',
-              '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: '0 8px 16px rgba(0,0,0,0.2)',
-              }
-            }}
-          >
-            <CardContent>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card className="stagger-item hover-lift" sx={{ 
+            borderRadius: 2,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            '&:hover': {
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              transform: 'translateY(-2px)',
+            },
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          }}>
+            <CardContent sx={{ p: isMobile ? 2 : 3 }}>
               <Box display="flex" alignItems="center">
-                <HistoryIcon color="primary" sx={{ fontSize: 40, mr: 2 }} />
+                <HistoryIcon color="info" sx={{ fontSize: isMobile ? 32 : 40, mr: 2 }} />
                 <Box>
-                  <Typography variant="h4">{stats.lichSuMuonHienTai}</Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant={isMobile ? "h5" : "h4"} color="info.main" sx={{ fontWeight: 700 }}>
+                    {stats.lichSuMuonHienTai}
+                  </Typography>
+                  <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">
                     Đang mượn
                   </Typography>
                 </Box>
@@ -258,70 +285,24 @@ const Dashboard: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={4}>
-          <Card
-            sx={{
-              transition: 'all 0.3s ease-in-out',
-              '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: '0 8px 16px rgba(0,0,0,0.2)',
-              }
-            }}
-          >
-            <CardContent>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card className="stagger-item hover-lift" sx={{ 
+            borderRadius: 2,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            '&:hover': {
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              transform: 'translateY(-2px)',
+            },
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          }}>
+            <CardContent sx={{ p: isMobile ? 2 : 3 }}>
               <Box display="flex" alignItems="center">
-                <WarningIcon color="warning" sx={{ fontSize: 40, mr: 2 }} />
+                <CheckCircleIcon color="success" sx={{ fontSize: isMobile ? 32 : 40, mr: 2 }} />
                 <Box>
-                  <Typography variant="h4">{stats.thietBiHongHoc}</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Thiết bị hỏng
+                  <Typography variant={isMobile ? "h5" : "h4"} color="success.main" sx={{ fontWeight: 700 }}>
+                    {stats.baoTriDangThucHien}
                   </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={4}>
-          <Card
-            sx={{
-              transition: 'all 0.3s ease-in-out',
-              '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: '0 8px 16px rgba(0,0,0,0.2)',
-              }
-            }}
-          >
-            <CardContent>
-              <Box display="flex" alignItems="center">
-                <ErrorIcon color="error" sx={{ fontSize: 40, mr: 2 }} />
-                <Box>
-                  <Typography variant="h4">{stats.coSoVatChatBaoTri}</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    CSVC bảo trì
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={4}>
-          <Card
-            sx={{
-              transition: 'all 0.3s ease-in-out',
-              '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: '0 8px 16px rgba(0,0,0,0.2)',
-              }
-            }}
-          >
-            <CardContent>
-              <Box display="flex" alignItems="center">
-                <CheckCircleIcon color="info" sx={{ fontSize: 40, mr: 2 }} />
-                <Box>
-                  <Typography variant="h4">{stats.baoTriDangThucHien}</Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">
                     Bảo trì đang thực hiện
                   </Typography>
                 </Box>
@@ -331,72 +312,200 @@ const Dashboard: React.FC = () => {
         </Grid>
       </Grid>
 
-      {/* Lịch sử gần đây và Bảo trì */}
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Lịch Sử Mượn Gần Đây
-            </Typography>
-            <List>
-              {recentLichSu.length > 0 ? (
-                recentLichSu.map((lichSu) => (
-                  <ListItem key={lichSu.id} divider>
-                    <ListItemIcon>
-                      <HistoryIcon />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={lichSu.nguoiMuon}
-                      secondary={`${new Date(lichSu.ngayMuon).toLocaleDateString('vi-VN')} - ${lichSu.lyDo}`}
-                    />
-                    <Chip
-                      label={getStatusText(lichSu.trangThai)}
-                      color={getStatusColor(lichSu.trangThai) as any}
-                      size="small"
-                    />
-                  </ListItem>
-                ))
-              ) : (
-                <Typography variant="body2" color="text.secondary">
-                  Chưa có lịch sử mượn
+      {/* Warning Cards */}
+      <Grid container spacing={isMobile ? 2 : 3} sx={{ mb: isMobile ? 2 : 4 }}>
+        <Grid item xs={12} sm={6}>
+          <Card className="stagger-item hover-lift" sx={{ 
+            borderRadius: 2,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            '&:hover': {
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            },
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          }}>
+            <CardContent sx={{ p: isMobile ? 2 : 3 }}>
+              <Box display="flex" alignItems="center" mb={2}>
+                <ErrorIcon color="error" sx={{ fontSize: isMobile ? 24 : 32, mr: 1 }} />
+                <Typography variant={isMobile ? "h6" : "h6"} sx={{ fontWeight: 600 }}>
+                  Thiết bị hỏng hóc
                 </Typography>
-              )}
-            </List>
-          </Paper>
+              </Box>
+              <Typography variant={isMobile ? "h4" : "h3"} color="error" sx={{ fontWeight: 700, mb: 1 }}>
+                {stats.thietBiHongHoc}
+              </Typography>
+              <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">
+                Cần kiểm tra và sửa chữa
+              </Typography>
+            </CardContent>
+          </Card>
         </Grid>
 
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Bảo Trì Gần Đây
-            </Typography>
-            <List>
-              {recentBaoTri.length > 0 ? (
-                recentBaoTri.map((baoTri) => (
-                  <ListItem key={baoTri.id} divider>
-                    <ListItemIcon>
-                      <WarningIcon />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={baoTri.moTa}
-                      secondary={`${new Date(baoTri.ngayBatDau).toLocaleDateString('vi-VN')} - ${baoTri.nguoiThucHien}`}
-                    />
-                    <Chip
-                      label={getStatusText(baoTri.trangThai)}
-                      color={getStatusColor(baoTri.trangThai) as any}
-                      size="small"
-                    />
-                  </ListItem>
-                ))
-              ) : (
-                <Typography variant="body2" color="text.secondary">
-                  Chưa có hoạt động bảo trì
+        <Grid item xs={12} sm={6}>
+          <Card className="stagger-item hover-lift" sx={{ 
+            borderRadius: 2,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            '&:hover': {
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            },
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          }}>
+            <CardContent sx={{ p: isMobile ? 2 : 3 }}>
+              <Box display="flex" alignItems="center" mb={2}>
+                <WarningIcon color="warning" sx={{ fontSize: isMobile ? 24 : 32, mr: 1 }} />
+                <Typography variant={isMobile ? "h6" : "h6"} sx={{ fontWeight: 600 }}>
+                  Cơ sở vật chất bảo trì
                 </Typography>
-              )}
-            </List>
-          </Paper>
+              </Box>
+              <Typography variant={isMobile ? "h4" : "h3"} color="warning.main" sx={{ fontWeight: 700, mb: 1 }}>
+                {stats.coSoVatChatBaoTri}
+              </Typography>
+              <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">
+                Đang trong quá trình bảo trì
+              </Typography>
+            </CardContent>
+          </Card>
         </Grid>
       </Grid>
+
+      {/* Recent Activities - Chỉ hiển thị trên desktop */}
+      {!isMobile && (
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
+            <Card className="stagger-item hover-lift" sx={{ 
+              borderRadius: 2,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              '&:hover': {
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              },
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            }}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
+                  📋 Lịch Sử Mượn Gần Đây
+                </Typography>
+                {recentLichSu.length > 0 ? (
+                  <List>
+                    {recentLichSu.map((lichSu, index) => (
+                      <ListItem key={lichSu.id} divider={index < recentLichSu.length - 1}>
+                        <ListItemIcon>
+                          <HistoryIcon color="primary" />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={lichSu.nguoiMuon}
+                          secondary={
+                            <React.Fragment>
+                              <span style={{ fontSize: '0.875rem', color: 'rgba(0, 0, 0, 0.6)', display: 'block' }}>
+                                {lichSu.thietBiId ? `Thiết bị: ${lichSu.thietBiId}` : `Cơ sở: ${lichSu.coSoVatChatId}`}
+                              </span>
+                              <span style={{ fontSize: '0.75rem', color: 'rgba(0, 0, 0, 0.6)', display: 'block' }}>
+                                {new Date(lichSu.ngayMuon).toLocaleDateString('vi-VN')}
+                              </span>
+                            </React.Fragment>
+                          }
+                        />
+                        <Chip
+                          label={getStatusText(lichSu.trangThai)}
+                          color={getStatusColor(lichSu.trangThai) as any}
+                          size="small"
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                ) : (
+                  <Typography variant="body2" color="text.secondary" align="center">
+                    Chưa có lịch sử mượn
+                  </Typography>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <Card className="stagger-item hover-lift" sx={{ 
+              borderRadius: 2,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              '&:hover': {
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              },
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            }}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
+                  🔧 Bảo Trì Gần Đây
+                </Typography>
+                {recentBaoTri.length > 0 ? (
+                  <List>
+                    {recentBaoTri.map((baoTri, index) => (
+                      <ListItem key={baoTri.id} divider={index < recentBaoTri.length - 1}>
+                        <ListItemIcon>
+                          <CheckCircleIcon color="primary" />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={
+                            baoTri.thietBiId
+                              ? getThietBiName(baoTri.thietBiId)
+                              : baoTri.coSoVatChatId
+                                ? getCoSoVatChatName(baoTri.coSoVatChatId)
+                                : baoTri.moTa
+                          }
+                          secondary={
+                            <React.Fragment>
+                              <span style={{ fontSize: '0.875rem', color: 'rgba(0, 0, 0, 0.6)', display: 'block' }}>
+                                {baoTri.moTa}
+                              </span>
+                              <span style={{ fontSize: '0.75rem', color: 'rgba(0, 0, 0, 0.6)', display: 'block' }}>
+                                {new Date(baoTri.ngayBatDau).toLocaleDateString('vi-VN')}
+                              </span>
+                            </React.Fragment>
+                          }
+                        />
+                        <Chip
+                          label={getStatusText(baoTri.trangThai)}
+                          color={getStatusColor(baoTri.trangThai) as any}
+                          size="small"
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                ) : (
+                  <Typography variant="body2" color="text.secondary" align="center">
+                    Chưa có hoạt động bảo trì
+                  </Typography>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      )}
+
+      {/* Sample Data Button - Chỉ hiển thị khi không có dữ liệu */}
+      {(stats.totalThietBi === 0 && stats.totalCoSoVatChat === 0) && (
+        <Box className="stagger-item" sx={{ mt: isMobile ? 2 : 4, textAlign: 'center' }}>
+          <Typography variant={isMobile ? "body1" : "h6"} color="text.secondary" sx={{ mb: 2 }}>
+            Chưa có dữ liệu. Hãy tạo dữ liệu mẫu để bắt đầu sử dụng hệ thống.
+          </Typography>
+          <Button
+            variant="contained"
+            onClick={handleCreateSampleData}
+            sx={{
+              px: 3,
+              py: 1.5,
+              fontSize: isMobile ? '0.875rem' : '1rem',
+              borderRadius: '12px',
+              textTransform: 'none',
+              fontWeight: 500,
+              boxShadow: '0 2px 8px rgba(25, 118, 210, 0.3)',
+              '&:hover': {
+                boxShadow: '0 4px 12px rgba(25, 118, 210, 0.4)',
+                transform: 'translateY(-1px)',
+              },
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            }}
+          >
+            Tạo Dữ Liệu Mẫu
+          </Button>
+        </Box>
+      )}
     </Box>
   );
 };

@@ -138,7 +138,7 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const performSync = useCallback(async () => {
     // Kiểm tra lock
     if (syncLockRef.current) {
-      console.log('🔄 Sync đang chạy, bỏ qua request này');
+      // console.log('🔄 Sync đang chạy, bỏ qua request này');
       return;
     }
 
@@ -147,7 +147,7 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setStatus(prev => ({ ...prev, isProcessing: true }));
 
     try {
-      console.log('🔄 Bắt đầu sync...');
+      // console.log('🔄 Bắt đầu sync...');
       
       // Lấy dữ liệu từ localStorage
       const localStorageData = {
@@ -174,6 +174,7 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Lỗi không xác định';
+      console.error('❌ Lỗi đồng bộ:', errorMessage);
       setStatus(prev => ({
         ...prev,
         isRunning: false,
@@ -184,7 +185,7 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       // Release lock
       syncLockRef.current = false;
     }
-  }, [status.isRunning, checkConnection]);
+  }, []); // Loại bỏ dependencies để tránh vòng lặp
 
   // Bắt đầu auto-sync
   const startAutoSync = useCallback(() => {
@@ -215,7 +216,7 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const forceSync = useCallback(async () => {
     // Kiểm tra lock
     if (syncLockRef.current) {
-      console.log('🔄 Sync đang chạy, bỏ qua force sync');
+      // console.log('🔄 Sync đang chạy, bỏ qua force sync');
       return;
     }
 
@@ -269,7 +270,7 @@ export const AutoSyncProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       // Thiết lập interval để cập nhật trạng thái từ event service
       statusUpdateIntervalRef.current = setInterval(updateStatusFromEventService, 5000);
     }
-  }, [checkConnection, config.isEnabled, startAutoSync, updateStatusFromEventService]);
+  }, [config.isEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cleanup khi unmount
   useEffect(() => {

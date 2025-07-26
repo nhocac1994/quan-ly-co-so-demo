@@ -318,9 +318,11 @@ const GoogleSheetsOAuth: React.FC = () => {
                 </IconButton>
               </Tooltip>
               <Tooltip title="Kiểm tra kết nối">
-                <IconButton onClick={checkConnection} disabled={syncStatus.isSyncing}>
-                  <RefreshIcon />
-                </IconButton>
+                <span>
+                  <IconButton onClick={checkConnection} disabled={syncStatus.isSyncing}>
+                    <RefreshIcon />
+                  </IconButton>
+                </span>
               </Tooltip>
             </Box>
           </Box>

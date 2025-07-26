@@ -9,9 +9,10 @@ import Layout from './components/Layout/Layout';
 import Dashboard from './pages/Dashboard/Dashboard';
 import ThietBiManagement from './pages/ThietBiManagement/ThietBiManagement';
 import ThietBiDetail from './pages/ThietBiDetail/ThietBiDetail';
-import ThietBiView from './pages/ThietBiView/ThietBiView';
 import CoSoVatChatManagement from './pages/CoSoVatChatManagement/CoSoVatChatManagement';
+import CoSoVatChatDetail from './pages/CoSoVatChatDetail/CoSoVatChatDetail';
 import LichSuSuDung from './pages/LichSuSuDung/LichSuSuDung';
+import LichSuSuDungDetail from './pages/LichSuSuDungDetail/LichSuSuDungDetail';
 import BaoCao from './pages/BaoCao/BaoCao';
 import ThongBao from './pages/ThongBao/ThongBao';
 import QuanLyDongBo from './pages/QuanLyDongBo/QuanLyDongBo';
@@ -96,7 +97,12 @@ const AppContent: React.FC = () => {
           } />
           <Route path="/thiet-bi/:id/view" element={
             <ProtectedRoute requiredPermission="thietbi.view">
-              <ThietBiView />
+              <ThietBiDetail />
+            </ProtectedRoute>
+          } />
+          <Route path="/thiet-bi/:id/edit" element={
+            <ProtectedRoute requiredPermission="thietbi.manage">
+              <ThietBiDetail />
             </ProtectedRoute>
           } />
           <Route path="/thiet-bi/:id" element={
@@ -109,9 +115,39 @@ const AppContent: React.FC = () => {
               <CoSoVatChatManagement />
             </ProtectedRoute>
           } />
+          <Route path="/co-so-vat-chat/new" element={
+            <ProtectedRoute requiredPermission="cosovatchat.manage">
+              <CoSoVatChatDetail />
+            </ProtectedRoute>
+          } />
+          <Route path="/co-so-vat-chat/:id/view" element={
+            <ProtectedRoute requiredPermission="cosovatchat.view">
+              <CoSoVatChatDetail />
+            </ProtectedRoute>
+          } />
+          <Route path="/co-so-vat-chat/:id/edit" element={
+            <ProtectedRoute requiredPermission="cosovatchat.manage">
+              <CoSoVatChatDetail />
+            </ProtectedRoute>
+          } />
           <Route path="/lich-su-su-dung" element={
             <ProtectedRoute requiredPermission="lichsusu.view">
               <LichSuSuDung />
+            </ProtectedRoute>
+          } />
+          <Route path="/lich-su-su-dung/new" element={
+            <ProtectedRoute requiredPermission="lichsusu.manage">
+              <LichSuSuDungDetail />
+            </ProtectedRoute>
+          } />
+          <Route path="/lich-su-su-dung/:id/view" element={
+            <ProtectedRoute requiredPermission="lichsusu.view">
+              <LichSuSuDungDetail />
+            </ProtectedRoute>
+          } />
+          <Route path="/lich-su-su-dung/:id/edit" element={
+            <ProtectedRoute requiredPermission="lichsusu.manage">
+              <LichSuSuDungDetail />
             </ProtectedRoute>
           } />
           <Route path="/bao-cao" element={

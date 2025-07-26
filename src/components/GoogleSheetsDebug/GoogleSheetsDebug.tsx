@@ -131,9 +131,11 @@ const GoogleSheetsDebug: React.FC = () => {
             🐛 Debug Google Sheets Connection
           </Typography>
           <Tooltip title="Kiểm tra kết nối">
-            <IconButton onClick={testConnection} disabled={debugInfo.connectionStatus === 'testing'}>
-              <RefreshIcon />
-            </IconButton>
+            <span>
+              <IconButton onClick={testConnection} disabled={debugInfo.connectionStatus === 'testing'}>
+                <RefreshIcon />
+              </IconButton>
+            </span>
           </Tooltip>
         </Box>
 

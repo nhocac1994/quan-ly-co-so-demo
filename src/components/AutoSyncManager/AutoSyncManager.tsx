@@ -9,7 +9,9 @@ import {
   Slider,
   Chip,
   Alert,
-  Button
+  Button,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
@@ -36,6 +38,9 @@ interface SyncStats {
 }
 
 const AutoSyncManager: React.FC = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
   const { config, status, updateConfig, stopAutoSync, performManualSync, resetStats } = useAutoSync();
   
   const [stats, setStats] = useState<SyncStats>({
@@ -74,7 +79,7 @@ const AutoSyncManager: React.FC = () => {
         console.error('Lỗi khi parse auto sync stats:', error);
       }
     }
-  }, [updateConfig]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Save stats vào localStorage
   React.useEffect(() => {
@@ -175,27 +180,47 @@ const AutoSyncManager: React.FC = () => {
     <Card sx={{ mb: 3, boxShadow: 2, borderRadius: 2, width: '100%' }}>
       <CardContent>
         {/* Header */}
-                  <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
-            <Typography variant="h6" component="h2" sx={{ fontWeight: 'bold' }}>
-              🔄 Cài Đặt Đồng Bộ
-            </Typography>
-            <Box display="flex" gap={1}>
-              <Button 
-                onClick={handleManualSync} 
-                disabled={isSyncing}
-                variant="contained"
-                startIcon={<RefreshIcon />}
-              >
-                Đồng bộ thủ công
-              </Button>
-              <Button onClick={handleResetStats} variant="outlined" startIcon={<TrendingUpIcon />}>
-                Reset thống kê
-              </Button>
-            </Box>
+        <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
+          <Typography variant="h6" component="h2" className="fade-in" sx={{ fontWeight: 'bold' }}>
+            🔄 Cài Đặt Đồng Bộ
+          </Typography>
+          <Box display="flex" gap={1}>
+            <Button 
+              onClick={handleManualSync} 
+              disabled={isSyncing}
+              variant="contained"
+              startIcon={<RefreshIcon />}
+              className="hover-scale"
+              sx={{
+                minWidth: isMobile ? '48px' : 'auto',
+                px: isMobile ? 1 : 2,
+                '& .MuiButton-startIcon': {
+                  margin: isMobile ? 0 : undefined
+                }
+              }}
+            >
+              {!isMobile && 'Đồng bộ thủ công'}
+            </Button>
+            <Button 
+              onClick={handleResetStats} 
+              variant="outlined" 
+              startIcon={<TrendingUpIcon />}
+              className="hover-scale"
+              sx={{
+                minWidth: isMobile ? '48px' : 'auto',
+                px: isMobile ? 1 : 2,
+                '& .MuiButton-startIcon': {
+                  margin: isMobile ? 0 : undefined
+                }
+              }}
+            >
+              {!isMobile && 'Reset thống kê'}
+            </Button>
           </Box>
+        </Box>
 
           {/* Cảnh báo về rate limiting */}
-          <Alert severity="info" sx={{ mb: 3 }}>
+          <Alert severity="info" className="slide-in-bottom" sx={{ mb: 3 }}>
             <Typography variant="body2">
               <strong>💡 Lưu ý:</strong> Để tránh lỗi rate limiting (429), khuyến nghị đồng bộ tối thiểu 15 giây.
               Google Sheets API có giới hạn 100 requests/phút cho mỗi project.
@@ -239,7 +264,7 @@ const AutoSyncManager: React.FC = () => {
 
         {/* Progress Bar */}
         {isSyncing && (
-          <Box mb={3}>
+          <Box className="scale-in" mb={3}>
             <Box display="flex" alignItems="center" mb={1}>
               {/* SyncIcon */}
               <Typography variant="body2">Đang đồng bộ... {syncProgress}%</Typography>
@@ -250,13 +275,13 @@ const AutoSyncManager: React.FC = () => {
 
         {/* Error Display */}
         {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
+          <Alert severity="error" className="bounce-in" sx={{ mb: 3 }}>
             {error}
           </Alert>
         )}
 
                 {/* Sync Frequency - Full Width */}
-        <Box sx={{ mb: 3 }}>
+        <Box className="stagger-item" sx={{ mb: 3 }}>
           {/* Paper */}
           <Box sx={{ p: 3 }}>
             <Box display="flex" alignItems="center" mb={3}>
@@ -339,7 +364,7 @@ const AutoSyncManager: React.FC = () => {
         </Box>
 
         {/* Storage Mode */}
-        <Box sx={{ mb: 3 }}>
+        <Box className="stagger-item" sx={{ mb: 3 }}>
 
           {/* Storage Mode */}
           <Box sx={{ p: 3, height: '100%' }}>
@@ -374,7 +399,7 @@ const AutoSyncManager: React.FC = () => {
         </Box>
 
         {/* Statistics */}
-        <Box>
+        <Box className="stagger-item">
           <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2 }}>
             📈 Chỉ Số Hiệu Suất
           </Typography>
@@ -433,7 +458,7 @@ const AutoSyncManager: React.FC = () => {
 
         {/* Last Sync Info */}
         {stats.lastSyncTime > 0 && (
-          <Box mt={3}>
+          <Box className="fade-in" mt={3}>
             <Typography variant="body2" color="text.secondary">
               🕒 Lần đồng bộ cuối: {new Date(stats.lastSyncTime).toLocaleString('vi-VN')} 
               ({formatDuration(stats.lastSyncDuration)})

@@ -11,17 +11,30 @@ import {
   Breadcrumbs,
   Link,
   Alert,
-  CircularProgress
+  CircularProgress,
+  useMediaQuery,
+  useTheme,
+  IconButton,
+  Chip,
+  Card,
+  CardContent,
+  Portal
 } from '@mui/material';
 import {
-  ArrowBack as ArrowBackIcon
+  ArrowBack as ArrowBackIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  QrCode as QrCodeIcon
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { thietBiService } from '../../services/localStorage';
 import { ThietBi } from '../../types';
+import QRCodeModal from '../../components/QRCodeModal/QRCodeModal';
 
 const ThietBiDetail: React.FC = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { id } = useParams<{ id: string }>();
   const pathname = window.location.pathname;
   const isAddMode = pathname === '/thiet-bi/new';
@@ -34,7 +47,8 @@ const ThietBiDetail: React.FC = () => {
     pathname,
     isAddMode,
     isEditMode,
-    isViewMode
+    isViewMode,
+    isMobile
   });
   
   const [formData, setFormData] = useState<{
@@ -46,6 +60,8 @@ const ThietBiDetail: React.FC = () => {
     viTri: string;
     nhaCungCap: string;
     giaTri: number;
+    ngayNhap: string;
+    ngayCapNhat: string;
   }>({
     ten: '',
     loai: '',
@@ -54,12 +70,15 @@ const ThietBiDetail: React.FC = () => {
     moTa: '',
     viTri: '',
     nhaCungCap: '',
-    giaTri: 0
+    giaTri: 0,
+    ngayNhap: '',
+    ngayCapNhat: ''
   });
 
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [qrModalOpen, setQrModalOpen] = useState(false);
 
   const loadThietBiData = useCallback(() => {
     try {
@@ -73,7 +92,9 @@ const ThietBiDetail: React.FC = () => {
           moTa: thietBi.moTa || '',
           viTri: thietBi.viTri,
           nhaCungCap: thietBi.nhaCungCap || '',
-          giaTri: thietBi.giaTri || 0
+          giaTri: thietBi.giaTri || 0,
+          ngayNhap: thietBi.ngayNhap || '',
+          ngayCapNhat: thietBi.ngayCapNhat || ''
         });
       }
     } catch (error) {
@@ -82,10 +103,10 @@ const ThietBiDetail: React.FC = () => {
   }, [id]);
 
   useEffect(() => {
-    if (isEditMode && id && id !== 'new') {
+    if ((isEditMode || isViewMode) && id && id !== 'new') {
       loadThietBiData();
     }
-  }, [id, isEditMode, pathname, loadThietBiData]);
+  }, [id, isEditMode, isViewMode, pathname, loadThietBiData]);
 
   const validateForm = () => {
     const newErrors: {[key: string]: string} = {};
@@ -98,12 +119,12 @@ const ThietBiDetail: React.FC = () => {
       newErrors.loai = 'Loại thiết bị là bắt buộc';
     }
 
-    if (formData.soLuong <= 0) {
-      newErrors.soLuong = 'Số lượng phải lớn hơn 0';
-    }
-
     if (!formData.viTri.trim()) {
       newErrors.viTri = 'Vị trí là bắt buộc';
+    }
+
+    if (formData.soLuong < 1) {
+      newErrors.soLuong = 'Số lượng phải lớn hơn 0';
     }
 
     if (formData.giaTri < 0) {
@@ -120,29 +141,27 @@ const ThietBiDetail: React.FC = () => {
     }
 
     setIsLoading(true);
-    setSuccessMessage('');
+    setErrors({});
 
     try {
-      const thietBiData: Partial<ThietBi> = {
-        ...formData,
-        ngayCapNhat: new Date().toISOString()
-      };
-
       if (isAddMode) {
-        // Thêm thiết bị mới
-        thietBiService.add(thietBiData as Omit<ThietBi, 'id'>);
-        setSuccessMessage('Thêm thiết bị mới thành công!');
+        await thietBiService.add({
+          ...formData,
+          ngayNhap: new Date().toISOString(),
+          ngayCapNhat: new Date().toISOString()
+        } as Omit<ThietBi, 'id'>);
+        setSuccessMessage('Thêm thiết bị thành công!');
       } else if (isEditMode && id) {
-        // Cập nhật thiết bị
-        thietBiService.update(id, thietBiData);
+        await thietBiService.update(id, {
+          ...formData,
+          ngayCapNhat: new Date().toISOString()
+        });
         setSuccessMessage('Cập nhật thiết bị thành công!');
       }
 
-      // Chuyển về trang danh sách sau 2 giây
       setTimeout(() => {
         navigate('/thiet-bi');
-      }, 2000);
-
+      }, 1500);
     } catch (error) {
       console.error('Lỗi khi lưu thiết bị:', error);
       setErrors({ submit: 'Có lỗi xảy ra khi lưu thiết bị' });
@@ -153,42 +172,397 @@ const ThietBiDetail: React.FC = () => {
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Xóa lỗi khi user bắt đầu nhập
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
   };
 
-  return (
-    <Box sx={{ p: 3 }} key={pathname}>
-      {/* Breadcrumbs */}
-      <Breadcrumbs sx={{ mb: 3 }}>
-        <Link
-          color="inherit"
-          href="#"
-          onClick={(e) => {
-            e.preventDefault();
-            navigate('/thiet-bi');
-          }}
-          sx={{ display: 'flex', alignItems: 'center' }}
-        >
-          <ArrowBackIcon sx={{ mr: 1 }} />
-          Quản Lý Thiết Bị
-        </Link>
-        <Typography color="text.primary">
-          {isViewMode ? 'Xem Chi Tiết Thiết Bị' : (isAddMode ? 'Thêm Thiết Bị Mới' : 'Chỉnh Sửa Thiết Bị')}
-        </Typography>
-      </Breadcrumbs>
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'suDung': return 'success';
+      case 'hongHoc': return 'error';
+      case 'baoTri': return 'warning';
+      case 'ngungSuDung': return 'default';
+      default: return 'default';
+    }
+  };
 
-      {/* Header */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 1 }}>
-          {isViewMode ? 'Xem Chi Tiết Thiết Bị' : (isAddMode ? 'Thêm Thiết Bị Mới' : 'Chỉnh Sửa Thiết Bị')}
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          {isViewMode ? 'Xem thông tin chi tiết thiết bị' : (isAddMode ? 'Thêm thiết bị mới vào hệ thống' : 'Cập nhật thông tin thiết bị hiện có')}
-        </Typography>
-      </Box>
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'suDung': return 'Đang sử dụng';
+      case 'hongHoc': return 'Hỏng hóc';
+      case 'baoTri': return 'Bảo trì';
+      case 'ngungSuDung': return 'Ngừng sử dụng';
+      default: return status;
+    }
+  };
+
+  const handleQRCode = () => {
+    setQrModalOpen(true);
+  };
+
+  const handleCloseQRModal = () => {
+    setQrModalOpen(false);
+  };
+
+  const handleEdit = () => {
+    if (id) {
+      navigate(`/thiet-bi/${id}/edit`);
+    }
+  };
+
+  const handleDelete = () => {
+    if (window.confirm('Bạn có chắc chắn muốn xóa thiết bị này?')) {
+      try {
+        if (id) {
+          thietBiService.delete(id);
+          navigate('/thiet-bi');
+        }
+      } catch (error) {
+        console.error('Lỗi khi xóa thiết bị:', error);
+        setErrors({ submit: 'Có lỗi xảy ra khi xóa thiết bị' });
+      }
+    }
+  };
+
+  return (
+    <Box sx={{ p: { xs: 2, md: 3 }, pb: { xs: '120px', md: 3 } }} key={pathname}>
+      
+      {/* Mobile Header - Fixed */}
+      {isMobile && (
+        <Portal>
+          <Box
+            sx={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 1000,
+              backgroundColor: 'white',
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              pt: 0.5,
+              pb: 0.5,
+              px: 1,
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}
+          >
+            {/* Back button và Title */}
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+              <IconButton
+                onClick={() => navigate('/thiet-bi')}
+                size="small"
+                sx={{ 
+                  mr: 0.5,
+                  mt: 1,
+                  width: 32,
+                  height: 32,
+                  fontSize: 'small'
+                }}
+              >
+                <ArrowBackIcon />
+              </IconButton>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  flex: 1
+                }}
+              >
+                Chi Tiết Thiết Bị
+              </Typography>
+              
+              {/* Action Buttons */}
+              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                <IconButton
+                  onClick={handleQRCode}
+                  size="small"
+                  sx={{
+                    width: 28,
+                    height: 28,
+                    fontSize: '0.9rem',
+                    color: 'primary.main'
+                  }}
+                >
+                  <QrCodeIcon />
+                </IconButton>
+                <IconButton
+                  onClick={handleEdit}
+                  size="small"
+                  sx={{
+                    width: 28,
+                    height: 28,
+                    fontSize: '0.9rem',
+                    color: 'primary.main'
+                  }}
+                >
+                  <EditIcon />
+                </IconButton>
+                <IconButton
+                  onClick={handleDelete}
+                  size="small"
+                  sx={{
+                    width: 28,
+                    height: 28,
+                    fontSize: '0.9rem',
+                    color: 'error.main'
+                  }}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Box>
+            </Box>
+
+            {/* Breadcrumbs */}
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontSize: '0.75rem' }}
+            >
+              Quản Lý Thiết Bị / Chi Tiết Thiết Bị
+            </Typography>
+          </Box>
+        </Portal>
+      )}
+
+      {/* Desktop Header */}
+      {!isMobile && (
+        <>
+          {/* Breadcrumbs */}
+          <Breadcrumbs sx={{ mb: 3 }}>
+            <Link
+              color="inherit"
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                navigate('/thiet-bi');
+              }}
+              sx={{ display: 'flex', alignItems: 'center' }}
+            >
+              <ArrowBackIcon sx={{ mr: 1 }} />
+              Quản Lý Thiết Bị
+            </Link>
+            <Typography color="text.primary">
+              {isViewMode ? 'Xem Chi Tiết Thiết Bị' : (isAddMode ? 'Thêm Thiết Bị Mới' : 'Chỉnh Sửa Thiết Bị')}
+            </Typography>
+          </Breadcrumbs>
+
+          {/* Header */}
+          <Box sx={{ mb: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+              <Box>
+                <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 1 }}>
+                  {isViewMode ? 'Xem Chi Tiết Thiết Bị' : (isAddMode ? 'Thêm Thiết Bị Mới' : 'Chỉnh Sửa Thiết Bị')}
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
+                  {isViewMode ? 'Xem thông tin chi tiết thiết bị' : (isAddMode ? 'Thêm thiết bị mới vào hệ thống' : 'Cập nhật thông tin thiết bị hiện có')}
+                </Typography>
+              </Box>
+              
+              {/* Action Buttons cho Desktop View Mode */}
+              {isViewMode && (
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button
+                    variant="outlined"
+                    startIcon={<QrCodeIcon />}
+                    onClick={handleQRCode}
+                    size="small"
+                  >
+                    Mã QR
+                  </Button>
+                  <Button
+                    variant="contained"
+                    startIcon={<EditIcon />}
+                    onClick={handleEdit}
+                    size="small"
+                  >
+                    Chỉnh sửa
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    startIcon={<DeleteIcon />}
+                    onClick={handleDelete}
+                    size="small"
+                  >
+                    Xóa
+                  </Button>
+                </Box>
+              )}
+            </Box>
+          </Box>
+        </>
+      )}
+
+      {/* Card Layout - Cho cả Mobile và Desktop View Mode */}
+      {isViewMode && (
+        <Box>
+          {/* Device Title và Status */}
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="h5" fontWeight={600} sx={{ mb: 1, fontSize: isMobile ? '1.1rem' : '1.5rem' }}>
+              {formData.ten}
+            </Typography>
+            <Chip 
+              label={getStatusText(formData.tinhTrang)} 
+              color={getStatusColor(formData.tinhTrang)}
+              size="small"
+              sx={{ fontSize: isMobile ? '0.7rem' : '0.8rem', height: isMobile ? '20px' : '24px' }}
+            />
+          </Box>
+
+          {/* Desktop Layout - 2 cột */}
+          {!isMobile && (
+            <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+              {/* Basic Info Card */}
+              <Card sx={{ flex: 1, borderRadius: 2 }}>
+                <CardContent sx={{ p: 2 }}>
+                  <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
+                    Thông Tin Cơ Bản
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="body2" color="text.secondary">Loại thiết bị:</Typography>
+                      <Typography variant="body2" fontWeight={500}>{formData.loai}</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="body2" color="text.secondary">Số lượng:</Typography>
+                      <Typography variant="body2" fontWeight={500}>{formData.soLuong}</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="body2" color="text.secondary">Vị trí:</Typography>
+                      <Typography variant="body2" fontWeight={500}>{formData.viTri}</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="body2" color="text.secondary">Nhà cung cấp:</Typography>
+                      <Typography variant="body2" fontWeight={500}>{formData.nhaCungCap || 'N/A'}</Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+
+              {/* Additional Info Card */}
+              <Card sx={{ flex: 1, borderRadius: 2 }}>
+                <CardContent sx={{ p: 2 }}>
+                  <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main' }}>
+                    Thông Tin Bổ Sung
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="body2" color="text.secondary">Giá trị:</Typography>
+                      <Typography variant="body2" fontWeight={500}>
+                        {formData.giaTri ? `${formData.giaTri.toLocaleString('vi-VN')} VNĐ` : 'N/A'}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="body2" color="text.secondary">Ngày nhập:</Typography>
+                      <Typography variant="body2" fontWeight={500}>
+                        {formData.ngayNhap ? new Date(formData.ngayNhap).toLocaleDateString('vi-VN') : 'N/A'}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="body2" color="text.secondary">Ngày cập nhật cuối:</Typography>
+                      <Typography variant="body2" fontWeight={500}>
+                        {formData.ngayCapNhat ? new Date(formData.ngayCapNhat).toLocaleDateString('vi-VN') : 'N/A'}
+                      </Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Box>
+          )}
+
+          {/* Mobile Layout - 1 cột */}
+          {isMobile && (
+            <>
+              {/* Basic Info Card */}
+              <Card sx={{ mb: 1.5, borderRadius: 1.5 }}>
+                <CardContent sx={{ p: 1.5 }}>
+                  <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, color: 'primary.main', fontSize: '0.9rem' }}>
+                    Thông Tin Cơ Bản
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>Loại thiết bị:</Typography>
+                      <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.8rem' }}>{formData.loai}</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>Số lượng:</Typography>
+                      <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.8rem' }}>{formData.soLuong}</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>Vị trí:</Typography>
+                      <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.8rem' }}>{formData.viTri}</Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>Nhà cung cấp:</Typography>
+                      <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.8rem' }}>{formData.nhaCungCap || 'N/A'}</Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+
+              {/* Additional Info Card */}
+              <Card sx={{ mb: 1.5, borderRadius: 1.5 }}>
+                <CardContent sx={{ p: 1.5 }}>
+                  <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, color: 'primary.main', fontSize: '0.9rem' }}>
+                    Thông Tin Bổ Sung
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>Giá trị:</Typography>
+                      <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.8rem' }}>
+                        {formData.giaTri ? `${formData.giaTri.toLocaleString('vi-VN')} VNĐ` : 'N/A'}
+                      </Typography>
+                    </Box>
+                    {formData.moTa && (
+                      <Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, fontSize: '0.8rem' }}>Mô tả:</Typography>
+                        <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>{formData.moTa}</Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {/* Description Card - Cho cả Mobile và Desktop */}
+          {formData.moTa && (
+            <Card sx={{ mb: 1.5, borderRadius: isMobile ? 1.5 : 2 }}>
+              <CardContent sx={{ p: isMobile ? 1.5 : 2 }}>
+                <Typography variant={isMobile ? "subtitle2" : "subtitle1"} fontWeight={600} sx={{ mb: 1, color: 'primary.main', fontSize: isMobile ? '0.9rem' : '1rem' }}>
+                  Mô Tả
+                </Typography>
+                <Typography variant="body2" sx={{ fontSize: isMobile ? '0.8rem' : '0.9rem' }}>
+                  {formData.moTa}
+                </Typography>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Bottom Action Buttons - Cho Desktop */}
+          {!isMobile && (
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 3 }}>
+              <Button
+                variant="outlined"
+                onClick={() => navigate('/thiet-bi')}
+                sx={{ minWidth: 150 }}
+              >
+                Quay lại danh sách
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<EditIcon />}
+                onClick={handleEdit}
+                sx={{ minWidth: 150 }}
+              >
+                Chỉnh sửa
+              </Button>
+            </Box>
+          )}
+        </Box>
+      )}
 
       {/* Success Message */}
       {successMessage && (
@@ -204,135 +578,163 @@ const ThietBiDetail: React.FC = () => {
         </Alert>
       )}
 
-      {/* Form */}
-      <Box sx={{ mb: 3 }}>
-        <TextField
-          fullWidth
-          label="Tên thiết bị *"
-          value={formData.ten}
-          onChange={(e) => handleInputChange('ten', e.target.value)}
-          error={!!errors.ten}
-          helperText={errors.ten}
-          required
-          disabled={isViewMode}
-        />
-      </Box>
+      {/* Form - Chỉ hiển thị cho Add/Edit Mode */}
+      {!isViewMode && (
+        <>
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              fullWidth
+              label="Tên thiết bị *"
+              value={formData.ten}
+              onChange={(e) => handleInputChange('ten', e.target.value)}
+              error={!!errors.ten}
+              helperText={errors.ten}
+              required
+              disabled={isViewMode}
+            />
+          </Box>
 
-      <Box sx={{ mb: 3 }}>
-        <TextField
-          fullWidth
-          label="Loại thiết bị *"
-          value={formData.loai}
-          onChange={(e) => handleInputChange('loai', e.target.value)}
-          error={!!errors.loai}
-          helperText={errors.loai}
-          required
-          disabled={isViewMode}
-        />
-      </Box>
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              fullWidth
+              label="Loại thiết bị *"
+              value={formData.loai}
+              onChange={(e) => handleInputChange('loai', e.target.value)}
+              error={!!errors.loai}
+              helperText={errors.loai}
+              required
+              disabled={isViewMode}
+            />
+          </Box>
 
-      <Box sx={{ mb: 3 }}>
-        <TextField
-          fullWidth
-          label="Số lượng *"
-          type="number"
-          value={formData.soLuong}
-          onChange={(e) => handleInputChange('soLuong', parseInt(e.target.value) || 0)}
-          error={!!errors.soLuong}
-          helperText={errors.soLuong}
-          required
-          inputProps={{ min: 1 }}
-          disabled={isViewMode}
-        />
-      </Box>
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              fullWidth
+              label="Số lượng *"
+              type="number"
+              value={formData.soLuong}
+              onChange={(e) => handleInputChange('soLuong', parseInt(e.target.value) || 0)}
+              error={!!errors.soLuong}
+              helperText={errors.soLuong}
+              required
+              inputProps={{ min: 1 }}
+              disabled={isViewMode}
+            />
+          </Box>
 
-      <Box sx={{ mb: 3 }}>
-        <FormControl fullWidth>
-          <InputLabel>Tình trạng</InputLabel>
-          <Select
-            value={formData.tinhTrang}
-            label="Tình trạng"
-            onChange={(e) => handleInputChange('tinhTrang', e.target.value)}
-            disabled={isViewMode}
-          >
-            <MenuItem value="suDung">Đang sử dụng</MenuItem>
-            <MenuItem value="hongHoc">Hỏng hóc</MenuItem>
-            <MenuItem value="baoTri">Bảo trì</MenuItem>
-            <MenuItem value="ngungSuDung">Ngừng sử dụng</MenuItem>
-          </Select>
-        </FormControl>
-      </Box>
+          <Box sx={{ mb: 3 }}>
+            <FormControl fullWidth>
+              <InputLabel>Tình trạng</InputLabel>
+              <Select
+                value={formData.tinhTrang}
+                label="Tình trạng"
+                onChange={(e) => handleInputChange('tinhTrang', e.target.value)}
+                disabled={isViewMode}
+              >
+                <MenuItem value="suDung">Đang sử dụng</MenuItem>
+                <MenuItem value="hongHoc">Hỏng hóc</MenuItem>
+                <MenuItem value="baoTri">Bảo trì</MenuItem>
+                <MenuItem value="ngungSuDung">Ngừng sử dụng</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
 
-      <Box sx={{ mb: 3 }}>
-        <TextField
-          fullWidth
-          label="Vị trí *"
-          value={formData.viTri}
-          onChange={(e) => handleInputChange('viTri', e.target.value)}
-          error={!!errors.viTri}
-          helperText={errors.viTri}
-          required
-          disabled={isViewMode}
-        />
-      </Box>
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              fullWidth
+              label="Vị trí *"
+              value={formData.viTri}
+              onChange={(e) => handleInputChange('viTri', e.target.value)}
+              error={!!errors.viTri}
+              helperText={errors.viTri}
+              required
+              disabled={isViewMode}
+            />
+          </Box>
 
-      <Box sx={{ mb: 3 }}>
-        <TextField
-          fullWidth
-          label="Nhà cung cấp"
-          value={formData.nhaCungCap}
-          onChange={(e) => handleInputChange('nhaCungCap', e.target.value)}
-          disabled={isViewMode}
-        />
-      </Box>
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              fullWidth
+              label="Nhà cung cấp"
+              value={formData.nhaCungCap}
+              onChange={(e) => handleInputChange('nhaCungCap', e.target.value)}
+              disabled={isViewMode}
+            />
+          </Box>
 
-      <Box sx={{ mb: 3 }}>
-        <TextField
-          fullWidth
-          label="Giá trị (VNĐ)"
-          type="number"
-          value={formData.giaTri}
-          onChange={(e) => handleInputChange('giaTri', parseInt(e.target.value) || 0)}
-          error={!!errors.giaTri}
-          helperText={errors.giaTri}
-          inputProps={{ min: 0 }}
-          disabled={isViewMode}
-        />
-      </Box>
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              fullWidth
+              label="Giá trị (VNĐ)"
+              type="number"
+              value={formData.giaTri}
+              onChange={(e) => handleInputChange('giaTri', parseInt(e.target.value) || 0)}
+              error={!!errors.giaTri}
+              helperText={errors.giaTri}
+              inputProps={{ min: 0 }}
+              disabled={isViewMode}
+            />
+          </Box>
 
-      <Box sx={{ mb: 3 }}>
-        <TextField
-          fullWidth
-          label="Mô tả"
-          multiline
-          rows={4}
-          value={formData.moTa}
-          onChange={(e) => handleInputChange('moTa', e.target.value)}
-          placeholder="Nhập mô tả chi tiết về thiết bị..."
-          disabled={isViewMode}
-        />
-      </Box>
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              fullWidth
+              label="Mô tả"
+              multiline
+              rows={4}
+              value={formData.moTa}
+              onChange={(e) => handleInputChange('moTa', e.target.value)}
+              placeholder="Nhập mô tả chi tiết về thiết bị..."
+              disabled={isViewMode}
+            />
+          </Box>
 
-      {/* Action Buttons */}
-      <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-        <Button
-          variant="outlined"
-          onClick={() => navigate('/thiet-bi')}
-          disabled={isLoading}
-        >
-          {isViewMode ? 'Quay lại' : 'Hủy'}
-        </Button>
-        {!isViewMode && (
-          <Button
-            variant="contained"
-            onClick={handleSubmit}
-            disabled={isLoading}
-            startIcon={isLoading ? <CircularProgress size={24} /> : null}
-          >
-            {isLoading ? 'Đang lưu...' : (isAddMode ? 'Thêm thiết bị' : 'Cập nhật')}
-          </Button>
-        )}
-      </Box>
+          {/* Action Buttons */}
+          <Box sx={{ 
+            display: 'flex', 
+            gap: 2, 
+            justifyContent: 'flex-end',
+            flexDirection: { xs: 'column', sm: 'row' }
+          }}>
+            <Button
+              variant="outlined"
+              onClick={() => navigate('/thiet-bi')}
+              disabled={isLoading}
+              fullWidth={isMobile}
+            >
+              Hủy
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleSubmit}
+              disabled={isLoading}
+              startIcon={isLoading ? <CircularProgress size={24} /> : null}
+              fullWidth={isMobile}
+            >
+              {isLoading ? 'Đang lưu...' : (isAddMode ? 'Thêm thiết bị' : 'Cập nhật')}
+            </Button>
+          </Box>
+        </>
+      )}
+
+      {/* QR Code Modal */}
+      <QRCodeModal 
+        open={qrModalOpen} 
+        onClose={handleCloseQRModal} 
+        thietBi={{
+          id: id || '',
+          ten: formData.ten,
+          loai: formData.loai,
+          soLuong: formData.soLuong,
+          tinhTrang: formData.tinhTrang,
+          viTri: formData.viTri,
+          nhaCungCap: formData.nhaCungCap,
+          giaTri: formData.giaTri,
+          moTa: formData.moTa,
+          ngayNhap: new Date().toISOString(),
+          ngayCapNhat: new Date().toISOString()
+        }}
+      />
     </Box>
   );
 };

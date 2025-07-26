@@ -107,17 +107,19 @@ const AutoSyncStatus: React.FC = () => {
 
                   {/* Nút đồng bộ thủ công */}
                   <Tooltip title="Đồng bộ thủ công">
-                    <IconButton
-                      size="small"
-                      onClick={handleManualSync}
-                      disabled={status.isProcessing || status.isRunning}
-                      sx={{ 
-                        color: status.isConnected ? 'success.main' : 'error.main',
-                        '&:hover': { backgroundColor: 'rgba(0,0,0,0.04)' }
-                      }}
-                    >
-                      <SyncIcon fontSize="small" />
-                    </IconButton>
+                    <span>
+                      <IconButton
+                        size="small"
+                        onClick={handleManualSync}
+                        disabled={status.isProcessing || status.isRunning}
+                        sx={{ 
+                          color: status.isConnected ? 'success.main' : 'error.main',
+                          '&:hover': { backgroundColor: 'rgba(0,0,0,0.04)' }
+                        }}
+                      >
+                        <SyncIcon fontSize="small" />
+                      </IconButton>
+                    </span>
                   </Tooltip>
     </Box>
   );

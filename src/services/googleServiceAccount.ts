@@ -162,7 +162,7 @@ class GoogleServiceAccountService {
       }
 
       const data = await response.json();
-      console.log('Kết nối thành công với Google Sheets:', data.properties.title);
+      // console.log('Kết nối thành công với Google Sheets:', data.properties.title);
       return true;
     } catch (error) {
       console.error('Lỗi test kết nối:', error);
@@ -191,7 +191,7 @@ class GoogleServiceAccountService {
         if (response.status === 429) {
           // Rate limiting - wait with exponential backoff
           const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
-          console.log(`Rate limited (429), waiting ${waitTime}ms before retry ${attempt}/${maxRetries}`);
+          // console.log(`Rate limited (429), waiting ${waitTime}ms before retry ${attempt}/${maxRetries}`);
           await new Promise(resolve => setTimeout(resolve, waitTime));
           continue;
         }
@@ -242,7 +242,7 @@ class GoogleServiceAccountService {
         if (response.status === 429) {
           // Rate limiting - wait with exponential backoff
           const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
-          console.log(`Rate limited (429), waiting ${waitTime}ms before retry ${attempt}/${maxRetries}`);
+          // console.log(`Rate limited (429), waiting ${waitTime}ms before retry ${attempt}/${maxRetries}`);
           await new Promise(resolve => setTimeout(resolve, waitTime));
           continue;
         }
@@ -251,7 +251,7 @@ class GoogleServiceAccountService {
           throw new Error(`Lỗi khi ghi dữ liệu: ${response.status}`);
         }
 
-        console.log('Ghi dữ liệu thành công vào range:', range);
+        // console.log('Ghi dữ liệu thành công vào range:', range);
         return;
       } catch (error) {
         lastError = error as Error;
@@ -282,7 +282,7 @@ class GoogleServiceAccountService {
         await this.writeRange(sheetRange, sheetData);
       }
       
-      console.log(`Đồng bộ thành công ${localData.length} bản ghi lên sheet ${sheetName}`);
+      // console.log(`Đồng bộ thành công ${localData.length} bản ghi lên sheet ${sheetName}`);
     } catch (error) {
       console.error(`Lỗi khi đồng bộ sheet ${sheetName}:`, error);
       throw error;
@@ -316,8 +316,6 @@ class GoogleServiceAccountService {
     nguoiDung: any[];
   }): Promise<void> {
     try {
-      console.log('Bắt đầu đồng bộ tất cả dữ liệu...');
-
       // Đồng bộ từng sheet với delay để tránh rate limiting
       await this.syncToGoogleSheets(localStorageData.thietBi, 'ThietBi');
       await this.delay(500); // Delay 500ms giữa các sheet
@@ -336,7 +334,6 @@ class GoogleServiceAccountService {
       
       await this.syncToGoogleSheets(localStorageData.nguoiDung, 'NguoiDung');
 
-      console.log('Đồng bộ tất cả dữ liệu thành công!');
     } catch (error) {
       console.error('Lỗi khi đồng bộ tất cả dữ liệu:', error);
       throw error;
@@ -358,7 +355,7 @@ class GoogleServiceAccountService {
     nguoiDung: any[];
   }> {
     try {
-      console.log('Bắt đầu đồng bộ dữ liệu từ Google Sheets...');
+      // console.log('Bắt đầu đồng bộ dữ liệu từ Google Sheets...');
       
       const data = await this.readAllData();
       
@@ -370,7 +367,7 @@ class GoogleServiceAccountService {
       localStorage.setItem('thongBao', JSON.stringify(data.thongBao));
       localStorage.setItem('nguoiDung', JSON.stringify(data.nguoiDung));
       
-      console.log('Đồng bộ từ Google Sheets thành công!');
+      // console.log('Đồng bộ từ Google Sheets thành công!');
       return data;
     } catch (error) {
       console.error('Lỗi khi đồng bộ từ Google Sheets:', error);
@@ -388,7 +385,7 @@ class GoogleServiceAccountService {
     nguoiDung: any[];
   }): Promise<void> {
     try {
-      console.log('Bắt đầu đồng bộ hai chiều...');
+      // console.log('Bắt đầu đồng bộ hai chiều...');
       
       // Đọc dữ liệu từ Google Sheets
       const sheetsData = await this.readAllData();
@@ -414,7 +411,7 @@ class GoogleServiceAccountService {
       // Đồng bộ merged data lên Google Sheets
       await this.syncAllData(mergedData);
       
-      console.log('Đồng bộ hai chiều thành công!');
+      // console.log('Đồng bộ hai chiều thành công!');
     } catch (error) {
       console.error('Lỗi khi đồng bộ hai chiều:', error);
       throw error;
@@ -462,7 +459,7 @@ class GoogleServiceAccountService {
     nguoiDung: any[];
   }> {
     try {
-      console.log('Bắt đầu đọc tất cả dữ liệu từ Google Sheets...');
+      // console.log('Bắt đầu đọc tất cả dữ liệu từ Google Sheets...');
 
       const [thietBi, coSoVatChat, lichSuSuDung, baoTri, thongBao, nguoiDung] = await Promise.all([
         this.readSheetData('ThietBi'),
@@ -473,7 +470,7 @@ class GoogleServiceAccountService {
         this.readSheetData('NguoiDung')
       ]);
 
-      console.log('Đọc tất cả dữ liệu thành công!');
+      // console.log('Đọc tất cả dữ liệu thành công!');
       return { thietBi, coSoVatChat, lichSuSuDung, baoTri, thongBao, nguoiDung };
     } catch (error) {
       console.error('Lỗi khi đọc tất cả dữ liệu:', error);
@@ -488,7 +485,7 @@ class GoogleServiceAccountService {
       const rawData = await this.readRange(range);
       
       if (rawData.length < 2) {
-        console.log(`Sheet ${sheetName} trống hoặc chỉ có header`);
+        // console.log(`Sheet ${sheetName} trống hoặc chỉ có header`);
         return [];
       }
 
