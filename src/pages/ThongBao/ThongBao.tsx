@@ -9,10 +9,6 @@ import {
   ListItemText,
   ListItemIcon,
   IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
   FormControl,
   InputLabel,
@@ -25,7 +21,9 @@ import {
   Card,
   CardContent,
   Grid,
-  Avatar
+  Avatar,
+  Menu,
+  ListItemButton
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -36,8 +34,9 @@ import {
   Info as InfoIcon,
   Error as ErrorIcon,
   Search as SearchIcon,
-  Close as CloseIcon
+  KeyboardArrowDown as KeyboardArrowDownIcon
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { thongBaoService } from '../../services/localStorage';
 import { ThongBao } from '../../types';
 import MobileCardView from '../../components/MobileCardView/MobileCardView';
@@ -45,6 +44,7 @@ import MobileCardView from '../../components/MobileCardView/MobileCardView';
 const ThongBaoPage: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const navigate = useNavigate();
   
   const [thongBaoList, setThongBaoList] = useState<ThongBao[]>([]);
   const [filteredList, setFilteredList] = useState<ThongBao[]>([]);
@@ -52,25 +52,11 @@ const ThongBaoPage: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [openDialog, setOpenDialog] = useState(false);
-  const [editingThongBao, setEditingThongBao] = useState<ThongBao | null>(null);
-  const [formData, setFormData] = useState<{
-    tieuDe: string;
-    noiDung: string;
-    loai: 'baoTri' | 'thayThe' | 'caiTien' | 'thongBaoChung';
-    doUuTien: 'thap' | 'trungBinh' | 'cao' | 'khẩnCấp';
-    ngayHetHan: string;
-    nguoiNhan: string[];
-    trangThai: 'chuaDoc' | 'daDoc' | 'daXuLy';
-  }>({
-    tieuDe: '',
-    noiDung: '',
-    loai: 'thongBaoChung',
-    doUuTien: 'trungBinh',
-    ngayHetHan: '',
-    nguoiNhan: [],
-    trangThai: 'chuaDoc'
-  });
+  
+  // Menu states
+  const [typeMenuAnchor, setTypeMenuAnchor] = useState<null | HTMLElement>(null);
+  const [priorityMenuAnchor, setPriorityMenuAnchor] = useState<null | HTMLElement>(null);
+  const [statusMenuAnchor, setStatusMenuAnchor] = useState<null | HTMLElement>(null);
 
   useEffect(() => {
     loadThongBaoList();
@@ -111,17 +97,7 @@ const ThongBaoPage: React.FC = () => {
   };
 
   const handleAddNew = () => {
-    setEditingThongBao(null);
-    setFormData({
-      tieuDe: '',
-      noiDung: '',
-      loai: 'thongBaoChung',
-      doUuTien: 'trungBinh',
-      ngayHetHan: '',
-      nguoiNhan: [],
-      trangThai: 'chuaDoc'
-    });
-    setOpenDialog(true);
+    navigate('/thong-bao/new');
   };
 
   const handleViewDetail = (thongBao: ThongBao) => {
@@ -130,17 +106,7 @@ const ThongBaoPage: React.FC = () => {
   };
 
   const handleEdit = (thongBao: ThongBao) => {
-    setEditingThongBao(thongBao);
-    setFormData({
-      tieuDe: thongBao.tieuDe,
-      noiDung: thongBao.noiDung,
-      loai: thongBao.loai,
-      doUuTien: thongBao.doUuTien,
-      ngayHetHan: thongBao.ngayHetHan ? thongBao.ngayHetHan.split('T')[0] : '',
-      nguoiNhan: thongBao.nguoiNhan || [],
-      trangThai: thongBao.trangThai
-    });
-    setOpenDialog(true);
+    navigate(`/thong-bao/${thongBao.id}/edit`);
   };
 
   const handleDelete = (thongBao: ThongBao) => {
@@ -150,34 +116,36 @@ const ThongBaoPage: React.FC = () => {
     }
   };
 
-  const handleCloseDialog = () => {
-    setOpenDialog(false);
-    setEditingThongBao(null);
-  };
-
-  const handleSubmit = () => {
-    const now = new Date().toISOString();
-    const submitData = {
-      ...formData,
-      ngayTao: now,
-      ngayHetHan: formData.ngayHetHan ? new Date(formData.ngayHetHan).toISOString() : undefined
-    };
-
-    if (editingThongBao) {
-      thongBaoService.update(editingThongBao.id, submitData);
-    } else {
-      thongBaoService.add(submitData);
-    }
-
-    handleCloseDialog();
-    loadThongBaoList();
-  };
-
   const clearFilters = () => {
     setSearchTerm('');
     setTypeFilter('all');
     setPriorityFilter('all');
     setStatusFilter('all');
+  };
+
+  // Menu handlers
+  const handleTypeMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setTypeMenuAnchor(event.currentTarget);
+  };
+
+  const handleTypeMenuClose = () => {
+    setTypeMenuAnchor(null);
+  };
+
+  const handlePriorityMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setPriorityMenuAnchor(event.currentTarget);
+  };
+
+  const handlePriorityMenuClose = () => {
+    setPriorityMenuAnchor(null);
+  };
+
+  const handleStatusMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setStatusMenuAnchor(event.currentTarget);
+  };
+
+  const handleStatusMenuClose = () => {
+    setStatusMenuAnchor(null);
   };
 
   const getPriorityColor = (priority: string) => {
@@ -256,11 +224,12 @@ const ThongBaoPage: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: { xs: 0, md: 3 }, pb: { xs: '120px', md: 3 }, mt: { xs: 2, md: 0 } }}>
+    <Box sx={{ p: { xs: 0, md: 3 }, pb: { xs: '120px', md: 3 }, mt: { xs: 13, md: 0 } }}>
       {/* Mobile Header */}
       {isMobile && (
         <Portal>
           <Box
+            data-fixed-header
             sx={{
               position: 'fixed',
               top: 0,
@@ -285,10 +254,12 @@ const ThongBaoPage: React.FC = () => {
             {/* Filter Buttons */}
             <Box display="flex" gap={0.5} mt={1}>
               <Chip
-                label="Loại"
+                label={`Loại${typeFilter !== 'all' ? `: ${getTypeText(typeFilter)}` : ''}`}
                 size="small"
                 variant="outlined"
-                onClick={() => setTypeFilter(typeFilter === 'all' ? 'thongBaoChung' : 'all')}
+                onClick={handleTypeMenuOpen}
+                onDelete={typeFilter !== 'all' ? () => setTypeFilter('all') : undefined}
+                deleteIcon={<KeyboardArrowDownIcon />}
                 sx={{ 
                   fontSize: '0.75rem',
                   height: '30px',
@@ -300,10 +271,12 @@ const ThongBaoPage: React.FC = () => {
                 }}
               />
               <Chip
-                label="Ưu tiên"
+                label={`Ưu tiên${priorityFilter !== 'all' ? `: ${getPriorityText(priorityFilter)}` : ''}`}
                 size="small"
                 variant="outlined"
-                onClick={() => setPriorityFilter(priorityFilter === 'all' ? 'trungBinh' : 'all')}
+                onClick={handlePriorityMenuOpen}
+                onDelete={priorityFilter !== 'all' ? () => setPriorityFilter('all') : undefined}
+                deleteIcon={<KeyboardArrowDownIcon />}
                 sx={{ 
                   fontSize: '0.75rem',
                   height: '30px',
@@ -315,10 +288,12 @@ const ThongBaoPage: React.FC = () => {
                 }}
               />
               <Chip
-                label="Trạng thái"
+                label={`Trạng thái${statusFilter !== 'all' ? `: ${getStatusText(statusFilter)}` : ''}`}
                 size="small"
                 variant="outlined"
-                onClick={() => setStatusFilter(statusFilter === 'all' ? 'chuaDoc' : 'all')}
+                onClick={handleStatusMenuOpen}
+                onDelete={statusFilter !== 'all' ? () => setStatusFilter('all') : undefined}
+                deleteIcon={<KeyboardArrowDownIcon />}
                 sx={{ 
                   fontSize: '0.75rem',
                   height: '30px',
@@ -333,9 +308,6 @@ const ThongBaoPage: React.FC = () => {
           </Box>
         </Portal>
       )}
-
-      {/* Spacer for mobile header */}
-      {isMobile && <Box sx={{ height: '80px' }} />}
 
       {/* Desktop Header */}
       {!isMobile && (
@@ -629,97 +601,98 @@ const ThongBaoPage: React.FC = () => {
         </Portal>
       )}
 
-      {/* Dialog */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {editingThongBao ? 'Chỉnh Sửa Thông Báo' : 'Thêm Thông Báo Mới'}
-        </DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 2 }}>
-            <TextField
-              fullWidth
-              label="Tiêu đề"
-              value={formData.tieuDe}
-              onChange={(e) => setFormData({ ...formData, tieuDe: e.target.value })}
-              margin="normal"
-              required
+      {/* Filter Menus for Mobile */}
+      <Menu
+        anchorEl={typeMenuAnchor}
+        open={Boolean(typeMenuAnchor)}
+        onClose={handleTypeMenuClose}
+        PaperProps={{
+          sx: {
+            mt: 1,
+            minWidth: 150,
+            borderRadius: 2,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          }
+        }}
+      >
+        <MenuItem onClick={() => { setTypeFilter('all'); handleTypeMenuClose(); }}>
+          Tất cả
+        </MenuItem>
+        {getUniqueTypes().map((type) => (
+          <MenuItem 
+            key={type} 
+            onClick={() => { setTypeFilter(type); handleTypeMenuClose(); }}
+            selected={typeFilter === type}
+          >
+            <Box display="flex" alignItems="center" gap={1}>
+              {getTypeIcon(type)}
+              {getTypeText(type)}
+            </Box>
+          </MenuItem>
+        ))}
+      </Menu>
+
+      <Menu
+        anchorEl={priorityMenuAnchor}
+        open={Boolean(priorityMenuAnchor)}
+        onClose={handlePriorityMenuClose}
+        PaperProps={{
+          sx: {
+            mt: 1,
+            minWidth: 150,
+            borderRadius: 2,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          }
+        }}
+      >
+        <MenuItem onClick={() => { setPriorityFilter('all'); handlePriorityMenuClose(); }}>
+          Tất cả
+        </MenuItem>
+        {getUniquePriorities().map((priority) => (
+          <MenuItem 
+            key={priority} 
+            onClick={() => { setPriorityFilter(priority); handlePriorityMenuClose(); }}
+            selected={priorityFilter === priority}
+          >
+            <Chip 
+              label={getPriorityText(priority)} 
+              size="small" 
+              color={getPriorityColor(priority) as any}
             />
-            <TextField
-              fullWidth
-              label="Nội dung"
-              multiline
-              rows={4}
-              value={formData.noiDung}
-              onChange={(e) => setFormData({ ...formData, noiDung: e.target.value })}
-              margin="normal"
-              required
+          </MenuItem>
+        ))}
+      </Menu>
+
+      <Menu
+        anchorEl={statusMenuAnchor}
+        open={Boolean(statusMenuAnchor)}
+        onClose={handleStatusMenuClose}
+        PaperProps={{
+          sx: {
+            mt: 1,
+            minWidth: 150,
+            borderRadius: 2,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          }
+        }}
+      >
+        <MenuItem onClick={() => { setStatusFilter('all'); handleStatusMenuClose(); }}>
+          Tất cả
+        </MenuItem>
+        {getUniqueStatuses().map((status) => (
+          <MenuItem 
+            key={status} 
+            onClick={() => { setStatusFilter(status); handleStatusMenuClose(); }}
+            selected={statusFilter === status}
+          >
+            <Chip 
+              label={getStatusText(status)} 
+              size="small" 
+              color={getStatusColor(status) as any}
             />
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth margin="normal">
-                  <InputLabel>Loại thông báo</InputLabel>
-                  <Select
-                    value={formData.loai}
-                    onChange={(e) => setFormData({ ...formData, loai: e.target.value as any })}
-                    label="Loại thông báo"
-                  >
-                    <MenuItem value="thongBaoChung">Thông báo chung</MenuItem>
-                    <MenuItem value="baoTri">Bảo trì</MenuItem>
-                    <MenuItem value="thayThe">Thay thế</MenuItem>
-                    <MenuItem value="caiTien">Cải tiến</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth margin="normal">
-                  <InputLabel>Độ ưu tiên</InputLabel>
-                  <Select
-                    value={formData.doUuTien}
-                    onChange={(e) => setFormData({ ...formData, doUuTien: e.target.value as any })}
-                    label="Độ ưu tiên"
-                  >
-                    <MenuItem value="thap">Thấp</MenuItem>
-                    <MenuItem value="trungBinh">Trung bình</MenuItem>
-                    <MenuItem value="cao">Cao</MenuItem>
-                    <MenuItem value="khẩnCấp">Khẩn cấp</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Ngày hết hạn"
-                  type="date"
-                  value={formData.ngayHetHan}
-                  onChange={(e) => setFormData({ ...formData, ngayHetHan: e.target.value })}
-                  margin="normal"
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth margin="normal">
-                  <InputLabel>Trạng thái</InputLabel>
-                  <Select
-                    value={formData.trangThai}
-                    onChange={(e) => setFormData({ ...formData, trangThai: e.target.value as any })}
-                    label="Trạng thái"
-                  >
-                    <MenuItem value="chuaDoc">Chưa đọc</MenuItem>
-                    <MenuItem value="daDoc">Đã đọc</MenuItem>
-                    <MenuItem value="daXuLy">Đã xử lý</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Hủy</Button>
-          <Button onClick={handleSubmit} variant="contained">
-            {editingThongBao ? 'Cập nhật' : 'Thêm'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+          </MenuItem>
+        ))}
+      </Menu>
     </Box>
   );
 };

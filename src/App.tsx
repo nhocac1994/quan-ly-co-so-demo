@@ -15,6 +15,7 @@ import LichSuSuDung from './pages/LichSuSuDung/LichSuSuDung';
 import LichSuSuDungDetail from './pages/LichSuSuDungDetail/LichSuSuDungDetail';
 import BaoCao from './pages/BaoCao/BaoCao';
 import ThongBao from './pages/ThongBao/ThongBao';
+import ThongBaoDetail from './pages/ThongBaoDetail/ThongBaoDetail';
 import QuanLyDongBo from './pages/QuanLyDongBo/QuanLyDongBo';
 import Login from './components/Login/Login';
 import PageTransition from './components/PageTransition/PageTransition';
@@ -158,6 +159,21 @@ const AppContent: React.FC = () => {
           <Route path="/thong-bao" element={
             <ProtectedRoute requiredPermission="thongbao.view">
               <ThongBao />
+            </ProtectedRoute>
+          } />
+          <Route path="/thong-bao/new" element={
+            <ProtectedRoute requiredPermission="thongbao.manage">
+              <ThongBaoDetail />
+            </ProtectedRoute>
+          } />
+          <Route path="/thong-bao/:id/edit" element={
+            <ProtectedRoute requiredPermission="thongbao.manage">
+              <ThongBaoDetail />
+            </ProtectedRoute>
+          } />
+          <Route path="/thong-bao/:id" element={
+            <ProtectedRoute requiredPermission="thongbao.view">
+              <ThongBaoDetail />
             </ProtectedRoute>
           } />
           <Route path="/quan-ly-dong-bo" element={
