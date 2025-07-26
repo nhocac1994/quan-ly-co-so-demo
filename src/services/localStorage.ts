@@ -326,6 +326,11 @@ export const thongBaoService = {
   getById: (id: string): ThongBao | null => {
     const thongBaoList = getFromStorage<ThongBao>('thongBao');
     return thongBaoList.find(item => item.id === id) || null;
+  },
+  
+  getUnreadCount: (): number => {
+    const thongBaoList = getFromStorage<ThongBao>('thongBao');
+    return thongBaoList.filter(thongBao => thongBao.trangThai === 'chuaDoc').length;
   }
 };
 

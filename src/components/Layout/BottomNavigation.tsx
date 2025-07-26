@@ -1,14 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   BottomNavigation,
   BottomNavigationAction,
   Paper,
   useTheme,
   useMediaQuery,
-  Menu,
+  Dialog,
+  DialogTitle,
+  DialogContent,
   MenuItem,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  Badge,
+  Divider,
+  IconButton,
+  Box,
+  Typography
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -18,10 +25,13 @@ import {
   Assessment as AssessmentIcon,
   Notifications as NotificationsIcon,
   Sync as SyncIcon,
-  MoreVert as MoreVertIcon
+  MoreVert as MoreVertIcon,
+  Logout as LogoutIcon,
+  Close as CloseIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { thongBaoService } from '../../services/localStorage';
 
 const getMenuItems = (userRole?: string) => {
   const allMenuItems = [
@@ -55,7 +65,18 @@ const MobileBottomNavigation: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const [moreMenuAnchor, setMoreMenuAnchor] = useState<null | HTMLElement>(null);
+  const [moreDialogOpen, setMoreDialogOpen] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+
+  useEffect(() => {
+    const fetchUnreadNotifications = async () => {
+      const unread = await thongBaoService.getUnreadCount();
+      setUnreadNotifications(unread);
+    };
+    fetchUnreadNotifications();
+    const interval = setInterval(fetchUnreadNotifications, 60000); // Fetch every minute
+    return () => clearInterval(interval);
+  }, []);
 
   const allMenuItems = getMenuItems(user?.vaiTro);
   
@@ -74,17 +95,24 @@ const MobileBottomNavigation: React.FC = () => {
     return null;
   }
 
-  const handleMoreMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setMoreMenuAnchor(event.currentTarget);
+  const handleMoreDialogOpen = () => {
+    setMoreDialogOpen(true);
   };
 
-  const handleMoreMenuClose = () => {
-    setMoreMenuAnchor(null);
+  const handleMoreDialogClose = () => {
+    setMoreDialogOpen(false);
   };
 
   const handleMoreMenuItemClick = (path: string) => {
-    navigate(path);
-    handleMoreMenuClose();
+    if (path === '/dang-xuat') {
+      // Xử lý đăng xuất
+      localStorage.removeItem('user');
+      localStorage.removeItem('authToken');
+      navigate('/login');
+    } else {
+      navigate(path);
+    }
+    handleMoreDialogClose();
   };
 
   return (
@@ -107,7 +135,7 @@ const MobileBottomNavigation: React.FC = () => {
           value={location.pathname}
           onChange={(event, newValue) => {
             if (newValue === 'more') {
-              handleMoreMenuOpen(event as any);
+              handleMoreDialogOpen();
             } else {
               navigate(newValue);
             }
@@ -141,7 +169,26 @@ const MobileBottomNavigation: React.FC = () => {
               key={item.path}
               label={item.text}
               value={item.path}
-              icon={item.icon}
+              icon={
+                item.path === '/thong-bao' ? (
+                  <Badge 
+                    badgeContent={unreadNotifications > 0 ? unreadNotifications : null} 
+                    color="error"
+                    sx={{
+                      '& .MuiBadge-badge': {
+                        fontSize: '0.7rem',
+                        minWidth: '16px',
+                        height: '16px',
+                        borderRadius: '8px',
+                      }
+                    }}
+                  >
+                    {item.icon}
+                  </Badge>
+                ) : (
+                  item.icon
+                )
+              }
             />
           ))}
           
@@ -154,58 +201,134 @@ const MobileBottomNavigation: React.FC = () => {
         </BottomNavigation>
       </Paper>
 
-      {/* Menu dropdown cho "Xem thêm" */}
-      <Menu
-        anchorEl={moreMenuAnchor}
-        open={Boolean(moreMenuAnchor)}
-        onClose={handleMoreMenuClose}
-        anchorOrigin={{
-          vertical: 'top',
-          horizontal: 'center',
-        }}
-        transformOrigin={{
-          vertical: 'bottom',
-          horizontal: 'center',
+      {/* Dialog cho "Xem thêm" */}
+      <Dialog
+        open={moreDialogOpen}
+        onClose={handleMoreDialogClose}
+        fullScreen={isMobile}
+        maxWidth="sm"
+        fullWidth
+        TransitionProps={{
+          enter: true,
+          exit: true,
+          timeout: 300,
         }}
         PaperProps={{
           sx: {
-            mt: -1,
-            minWidth: 200,
-            boxShadow: '0px 4px 20px rgba(0,0,0,0.15)',
-            borderRadius: 2,
+            width: isMobile ? '100%' : '100%',
+            maxWidth: isMobile ? '100%' : 500,
+            height: isMobile ? '100%' : 'auto',
+            borderRadius: isMobile ? 0 : 3,
+            boxShadow: '0px 8px 32px rgba(0,0,0,0.12)',
+            border: '1px solid',
+            borderColor: 'divider',
+            overflow: 'hidden',
+            transform: moreDialogOpen ? 'translateY(0)' : 'translateY(20px)',
+            opacity: moreDialogOpen ? 1 : 0,
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           }
         }}
       >
-        {moreMenuItems.map((item) => (
-          <MenuItem
-            key={item.path}
-            onClick={() => handleMoreMenuItemClick(item.path)}
-            selected={location.pathname === item.path}
-            sx={{
-              py: 1.5,
-              px: 2,
-              '&.Mui-selected': {
-                backgroundColor: theme.palette.primary.light,
-                color: theme.palette.primary.main,
+        <DialogTitle sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          px: isMobile ? 3 : 2.5,
+          py: isMobile ? 2 : 1.5,
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          backgroundColor: theme.palette.background.paper,
+        }}>
+          <Typography variant={isMobile ? "h5" : "h6"} component="div" fontWeight={600}>
+            Menu
+          </Typography>
+          <IconButton onClick={handleMoreDialogClose} sx={{ color: 'inherit' }}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ 
+          px: isMobile ? 3 : 2.5, 
+          py: isMobile ? 2 : 1.5,
+          backgroundColor: theme.palette.background.default,
+          display: 'flex',
+          flexDirection: 'column',
+          height: isMobile ? '100%' : 'auto',
+        }}>
+          {/* Menu items */}
+          <Box sx={{ flex: 1 }}>
+            {moreMenuItems.map((item) => (
+              <MenuItem
+                key={item.path}
+                onClick={() => handleMoreMenuItemClick(item.path)}
+                selected={location.pathname === item.path}
+                sx={{
+                  py: isMobile ? 2.5 : 2,
+                  px: isMobile ? 3 : 2.5,
+                  mx: isMobile ? 0 : 1,
+                  my: isMobile ? 1 : 0.5,
+                  borderRadius: 2,
+                  '&:hover': {
+                    backgroundColor: theme.palette.action.hover,
+                  },
+                  '&.Mui-selected': {
+                    backgroundColor: theme.palette.primary.light,
+                    color: theme.palette.primary.main,
+                    '&:hover': {
+                      backgroundColor: theme.palette.primary.light,
+                    },
+                  },
+                }}
+              >
+                <ListItemIcon sx={{ color: 'inherit', minWidth: isMobile ? 48 : 44 }}>
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText 
+                  primary={item.text}
+                  primaryTypographyProps={{
+                    fontSize: isMobile ? '1rem' : '0.95rem',
+                    fontWeight: location.pathname === item.path ? 600 : 500,
+                  }}
+                />
+              </MenuItem>
+            ))}
+          </Box>
+          
+          {/* Logout section - ở cuối */}
+          <Box sx={{ mt: 'auto', pt: 2 }}>
+            <Divider sx={{ mb: 2 }} />
+            <MenuItem
+              onClick={() => handleMoreMenuItemClick('/dang-xuat')}
+              sx={{
+                py: isMobile ? 2.5 : 2,
+                px: isMobile ? 3 : 2.5,
+                mx: isMobile ? 0 : 1,
+                borderRadius: 2,
+                color: theme.palette.error.main,
+                backgroundColor: 'transparent',
                 '&:hover': {
-                  backgroundColor: theme.palette.primary.light,
+                  backgroundColor: theme.palette.error.light,
+                  color: theme.palette.error.dark,
                 },
-              },
-            }}
-          >
-            <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>
-              {item.icon}
-            </ListItemIcon>
-            <ListItemText 
-              primary={item.text}
-              primaryTypographyProps={{
-                fontSize: '0.9rem',
-                fontWeight: location.pathname === item.path ? 600 : 400,
+                '&:active': {
+                  backgroundColor: theme.palette.error.main,
+                  color: theme.palette.error.contrastText,
+                },
               }}
-            />
-          </MenuItem>
-        ))}
-      </Menu>
+            >
+              <ListItemIcon sx={{ color: 'inherit', minWidth: isMobile ? 48 : 44 }}>
+                <LogoutIcon />
+              </ListItemIcon>
+              <ListItemText 
+                primary="Đăng xuất"
+                primaryTypographyProps={{
+                  fontSize: isMobile ? '1rem' : '0.95rem',
+                  fontWeight: 500,
+                }}
+              />
+            </MenuItem>
+          </Box>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

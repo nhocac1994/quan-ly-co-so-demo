@@ -335,16 +335,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           py: { xs: 1, md: 3 }, // Giữ padding trên dưới
           width: { md: `calc(100% - ${currentDrawerWidth}px)` },
           mt: { xs: 0, md: '64px' }, // Không có margin top trên mobile
-          pb: { xs: '120px', md: 3 }, // Tăng padding bottom cho mobile để tránh FAB
+          pb: { xs: '80px', md: 3 }, // Giảm padding bottom cho mobile
           backgroundColor: '#f5f5f5',
-          minHeight: { xs: '100vh', md: 'calc(100vh - 64px)' }, // Sửa minHeight cho mobile
+          minHeight: { xs: 'auto', md: 'calc(100vh - 64px)' }, // Sửa minHeight cho mobile
+          height: { xs: 'auto', md: 'calc(100vh - 64px)' }, // Thêm height cho desktop
           transition: theme.transitions.create(['margin', 'width'], {
             easing: theme.transitions.easing.easeInOut,
             duration: theme.transitions.duration.standard,
           }),
           transform: 'translateX(0)',
           position: 'relative', // Thêm position relative
-          overflow: 'visible', // Cho phép overflow để FAB hiển thị
+          overflow: { xs: 'auto', md: 'visible' }, // Sửa overflow cho mobile
         }}
       >
         {children}

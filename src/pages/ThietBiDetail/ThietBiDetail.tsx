@@ -226,7 +226,7 @@ const ThietBiDetail: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 }, pb: { xs: '120px', md: 3 } }} key={pathname}>
+    <Box sx={{ p: { xs: 0, md: 3 }, mt: { xs: 12, md: 0 } }} key={pathname}>
       
       {/* Mobile Header - Fixed */}
       {isMobile && (
@@ -241,22 +241,21 @@ const ThietBiDetail: React.FC = () => {
               backgroundColor: 'white',
               borderBottom: '1px solid',
               borderColor: 'divider',
-              pt: 0.5,
-              pb: 0.5,
-              px: 1,
+              pt: 1,
+              pb: 1,
+              px: 2,
               boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
             }}
           >
             {/* Back button và Title */}
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
               <IconButton
                 onClick={() => navigate('/thiet-bi')}
                 size="small"
                 sx={{ 
-                  mr: 0.5,
-                  mt: 1,
-                  width: 32,
-                  height: 32,
+                  mr: 1,
+                  width: 36,
+                  height: 36,
                   fontSize: 'small'
                 }}
               >
@@ -265,7 +264,7 @@ const ThietBiDetail: React.FC = () => {
               <Typography
                 variant="h6"
                 sx={{
-                  fontSize: '1rem',
+                  fontSize: '1.1rem',
                   fontWeight: 600,
                   flex: 1
                 }}
@@ -274,14 +273,14 @@ const ThietBiDetail: React.FC = () => {
               </Typography>
               
               {/* Action Buttons */}
-              <Box sx={{ display: 'flex', gap: 0.5 }}>
+              <Box sx={{ display: 'flex', gap: 1 }}>
                 <IconButton
                   onClick={handleQRCode}
                   size="small"
                   sx={{
-                    width: 28,
-                    height: 28,
-                    fontSize: '0.9rem',
+                    width: 32,
+                    height: 32,
+                    fontSize: '1rem',
                     color: 'primary.main'
                   }}
                 >
@@ -291,9 +290,9 @@ const ThietBiDetail: React.FC = () => {
                   onClick={handleEdit}
                   size="small"
                   sx={{
-                    width: 28,
-                    height: 28,
-                    fontSize: '0.9rem',
+                    width: 32,
+                    height: 32,
+                    fontSize: '1rem',
                     color: 'primary.main'
                   }}
                 >
@@ -303,9 +302,9 @@ const ThietBiDetail: React.FC = () => {
                   onClick={handleDelete}
                   size="small"
                   sx={{
-                    width: 28,
-                    height: 28,
-                    fontSize: '0.9rem',
+                    width: 32,
+                    height: 32,
+                    fontSize: '1rem',
                     color: 'error.main'
                   }}
                 >
@@ -318,7 +317,7 @@ const ThietBiDetail: React.FC = () => {
             <Typography
               variant="caption"
               color="text.secondary"
-              sx={{ fontSize: '0.75rem' }}
+              sx={{ fontSize: '0.8rem' }}
             >
               Quản Lý Thiết Bị / Chi Tiết Thiết Bị
             </Typography>
@@ -399,15 +398,22 @@ const ThietBiDetail: React.FC = () => {
       {isViewMode && (
         <Box>
           {/* Device Title và Status */}
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="h5" fontWeight={600} sx={{ mb: 1, fontSize: isMobile ? '1.1rem' : '1.5rem' }}>
+          <Box sx={{ mb: 2.5 }}>
+            <Typography variant="h5" fontWeight={600} sx={{ mb: 1.5, fontSize: isMobile ? '1.2rem' : '1.5rem', lineHeight: 1.3 }}>
               {formData.ten}
             </Typography>
             <Chip 
               label={getStatusText(formData.tinhTrang)} 
               color={getStatusColor(formData.tinhTrang)}
               size="small"
-              sx={{ fontSize: isMobile ? '0.7rem' : '0.8rem', height: isMobile ? '20px' : '24px' }}
+              sx={{ 
+                fontSize: isMobile ? '0.75rem' : '0.8rem', 
+                height: isMobile ? '24px' : '28px',
+                fontWeight: 500,
+                '& .MuiChip-label': {
+                  px: isMobile ? 1.5 : 2
+                }
+              }}
             />
           </Box>
 
@@ -476,49 +482,49 @@ const ThietBiDetail: React.FC = () => {
           {isMobile && (
             <>
               {/* Basic Info Card */}
-              <Card sx={{ mb: 1.5, borderRadius: 1.5 }}>
-                <CardContent sx={{ p: 1.5 }}>
-                  <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, color: 'primary.main', fontSize: '0.9rem' }}>
+              <Card sx={{ mb: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                <CardContent sx={{ p: 2 }}>
+                  <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main', fontSize: '1rem' }}>
                     Thông Tin Cơ Bản
                   </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>Loại thiết bị:</Typography>
-                      <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.8rem' }}>{formData.loai}</Typography>
+                      <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.85rem' }}>{formData.loai}</Typography>
                     </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>Số lượng:</Typography>
-                      <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.8rem' }}>{formData.soLuong}</Typography>
+                      <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.85rem' }}>{formData.soLuong}</Typography>
                     </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>Vị trí:</Typography>
-                      <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.8rem' }}>{formData.viTri}</Typography>
+                      <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.85rem' }}>{formData.viTri}</Typography>
                     </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>Nhà cung cấp:</Typography>
-                      <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.8rem' }}>{formData.nhaCungCap || 'N/A'}</Typography>
+                      <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.85rem' }}>{formData.nhaCungCap || 'N/A'}</Typography>
                     </Box>
                   </Box>
                 </CardContent>
               </Card>
 
               {/* Additional Info Card */}
-              <Card sx={{ mb: 1.5, borderRadius: 1.5 }}>
-                <CardContent sx={{ p: 1.5 }}>
-                  <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1, color: 'primary.main', fontSize: '0.9rem' }}>
+              <Card sx={{ mb: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                <CardContent sx={{ p: 2 }}>
+                  <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1.5, color: 'primary.main', fontSize: '1rem' }}>
                     Thông Tin Bổ Sung
                   </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>Giá trị:</Typography>
-                      <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.8rem' }}>
+                      <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.85rem' }}>
                         {formData.giaTri ? `${formData.giaTri.toLocaleString('vi-VN')} VNĐ` : 'N/A'}
                       </Typography>
                     </Box>
                     {formData.moTa && (
                       <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, fontSize: '0.8rem' }}>Mô tả:</Typography>
-                        <Typography variant="body2" sx={{ fontSize: '0.8rem' }}>{formData.moTa}</Typography>
+                        <Typography variant="body2" sx={{ fontSize: '0.85rem', lineHeight: 1.4 }}>{formData.moTa}</Typography>
                       </Box>
                     )}
                   </Box>

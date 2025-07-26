@@ -84,9 +84,9 @@ const QuanLyDongBo: React.FC = () => {
         </Box>
       )}
 
-      {/* Status Overview */}
-      <Grid container spacing={isMobile ? 2 : 3} sx={{ mb: isMobile ? 2 : 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
+      {/* Status Cards */}
+      <Grid container spacing={isMobile ? 1.5 : 3} sx={{ mb: isMobile ? 2 : 4 }}>
+        <Grid item xs={6} sm={6} md={3}>
           <Card className="stagger-item hover-lift" sx={{ 
             height: '100%',
             borderRadius: 2,
@@ -97,14 +97,14 @@ const QuanLyDongBo: React.FC = () => {
               boxShadow: '0 8px 16px rgba(0,0,0,0.2)',
             }
           }}>
-            <CardContent sx={{ p: isMobile ? 2 : 3 }}>
+            <CardContent sx={{ p: isMobile ? 1.5 : 3 }}>
               <Box display="flex" alignItems="center">
                 <CloudSyncIcon 
                   color={status.isConnected ? "success" : "error"} 
-                  sx={{ fontSize: isMobile ? 32 : 40, mr: 2 }} 
+                  sx={{ fontSize: isMobile ? 28 : 40, mr: isMobile ? 1 : 2 }} 
                 />
                 <Box>
-                  <Typography variant={isMobile ? "h5" : "h4"} color={status.isConnected ? "success.main" : "error.main"} sx={{ fontWeight: 600 }}>
+                  <Typography variant={isMobile ? "h6" : "h4"} color={status.isConnected ? "success.main" : "error.main"} sx={{ fontWeight: 600 }}>
                     {status.isConnected ? "Online" : "Offline"}
                   </Typography>
                   <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">
@@ -116,7 +116,7 @@ const QuanLyDongBo: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={6} md={3}>
           <Card className="stagger-item hover-lift" sx={{ 
             height: '100%',
             borderRadius: 2,
@@ -127,11 +127,11 @@ const QuanLyDongBo: React.FC = () => {
               boxShadow: '0 8px 16px rgba(0,0,0,0.2)',
             }
           }}>
-            <CardContent sx={{ p: isMobile ? 2 : 3 }}>
+            <CardContent sx={{ p: isMobile ? 1.5 : 3 }}>
               <Box display="flex" alignItems="center">
-                <SettingsIcon color="primary" sx={{ fontSize: isMobile ? 32 : 40, mr: 2 }} />
+                <SettingsIcon color="primary" sx={{ fontSize: isMobile ? 28 : 40, mr: isMobile ? 1 : 2 }} />
                 <Box>
-                  <Typography variant={isMobile ? "h5" : "h4"} color="primary" sx={{ fontWeight: 600 }}>
+                  <Typography variant={isMobile ? "h6" : "h4"} color="primary" sx={{ fontWeight: 600 }}>
                     Config
                   </Typography>
                   <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">
@@ -143,7 +143,7 @@ const QuanLyDongBo: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={6} md={3}>
           <Card className="stagger-item hover-lift" sx={{ 
             height: '100%',
             borderRadius: 2,
@@ -154,14 +154,14 @@ const QuanLyDongBo: React.FC = () => {
               boxShadow: '0 8px 16px rgba(0,0,0,0.2)',
             }
           }}>
-            <CardContent sx={{ p: isMobile ? 2 : 3 }}>
+            <CardContent sx={{ p: isMobile ? 1.5 : 3 }}>
               <Box display="flex" alignItems="center">
                 <CheckCircleIcon 
                   color={status.isRunning ? "success" : "disabled"} 
-                  sx={{ fontSize: isMobile ? 32 : 40, mr: 2 }} 
+                  sx={{ fontSize: isMobile ? 28 : 40, mr: isMobile ? 1 : 2 }} 
                 />
                 <Box>
-                  <Typography variant={isMobile ? "h5" : "h4"} color={status.isRunning ? "success.main" : "text.disabled"} sx={{ fontWeight: 600 }}>
+                  <Typography variant={isMobile ? "h6" : "h4"} color={status.isRunning ? "success.main" : "text.disabled"} sx={{ fontWeight: 600 }}>
                     {status.isRunning ? "Đang chạy" : "Dừng"}
                   </Typography>
                   <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">
@@ -173,7 +173,7 @@ const QuanLyDongBo: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={6} md={3}>
           <Card className="stagger-item hover-lift" sx={{ 
             height: '100%',
             borderRadius: 2,
@@ -184,14 +184,14 @@ const QuanLyDongBo: React.FC = () => {
               boxShadow: '0 8px 16px rgba(0,0,0,0.2)',
             }
           }}>
-            <CardContent sx={{ p: isMobile ? 2 : 3 }}>
+            <CardContent sx={{ p: isMobile ? 1.5 : 3 }}>
               <Box display="flex" alignItems="center">
                 <ErrorIcon 
                   color={status.error ? "error" : "disabled"} 
-                  sx={{ fontSize: isMobile ? 32 : 40, mr: 2 }} 
+                  sx={{ fontSize: isMobile ? 28 : 40, mr: isMobile ? 1 : 2 }} 
                 />
                 <Box>
-                  <Typography variant={isMobile ? "h5" : "h4"} color={status.error ? "error.main" : "text.disabled"} sx={{ fontWeight: 600 }}>
+                  <Typography variant={isMobile ? "h6" : "h4"} color={status.error ? "error.main" : "text.disabled"} sx={{ fontWeight: 600 }}>
                     {status.error ? "Lỗi" : "OK"}
                   </Typography>
                   <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">

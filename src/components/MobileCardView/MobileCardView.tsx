@@ -105,31 +105,31 @@ const MobileCardView: React.FC<MobileCardViewProps> = ({
       case 'thietBi':
         return (
           <>
-            <Box display="flex" alignItems="center" mb={1}>
-              <Avatar sx={{ bgcolor: theme.palette.primary.main, mr: 2 }}>
+            <Box display="flex" alignItems="center" mb={1.5}>
+              <Avatar sx={{ bgcolor: theme.palette.primary.main, mr: 1.5, width: 40, height: 40 }}>
                 <DevicesIcon />
               </Avatar>
               <Box flex={1}>
-                <Typography variant="h6" component="div" fontWeight={600}>
+                <Typography variant="h6" component="div" fontWeight={600} sx={{ fontSize: '1rem', mb: 0.5 }}>
                   {item.tenThietBi || item.ten}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
                   STT: {index + 1}
                 </Typography>
               </Box>
             </Box>
             
-            <Grid container spacing={1} mb={2}>
+            <Grid container spacing={1.5} mb={1.5}>
               <Grid item xs={6}>
-                <Typography variant="caption" color="text.secondary">Loại:</Typography>
-                <Typography variant="body2">{item.loaiThietBi || item.loai}</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', display: 'block', mb: 0.5 }}>Loại:</Typography>
+                <Typography variant="body2" sx={{ fontSize: '0.85rem', fontWeight: 500 }}>{item.loaiThietBi || item.loai}</Typography>
               </Grid>
               <Grid item xs={6}>
-                <Typography variant="caption" color="text.secondary">Số lượng:</Typography>
-                <Typography variant="body2">{item.soLuong || '1'}</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', display: 'block', mb: 0.5 }}>Số lượng:</Typography>
+                <Typography variant="body2" sx={{ fontSize: '0.85rem', fontWeight: 500 }}>{item.soLuong || '1'}</Typography>
               </Grid>
               <Grid item xs={6}>
-                <Typography variant="caption" color="text.secondary">Tình trạng:</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', display: 'block', mb: 0.5 }}>Tình trạng:</Typography>
                 <Chip 
                   label={item.tinhTrang === 'suDung' ? 'Đang sử dụng' : 
                          item.tinhTrang === 'hongHoc' ? 'Hỏng hóc' :
@@ -141,20 +141,20 @@ const MobileCardView: React.FC<MobileCardViewProps> = ({
                          item.tinhTrang === 'hongHoc' ? 'error' :
                          item.tinhTrang === 'baoTri' ? 'warning' :
                          item.tinhTrang === 'ngungSuDung' ? 'default' : 'default'}
-                  sx={{ ml: 0.5 }}
+                  sx={{ fontSize: '0.7rem', height: '20px' }}
                 />
               </Grid>
               <Grid item xs={6}>
-                <Typography variant="caption" color="text.secondary">Vị trí:</Typography>
-                <Typography variant="body2">{item.viTri || 'Không xác định'}</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', display: 'block', mb: 0.5 }}>Vị trí:</Typography>
+                <Typography variant="body2" sx={{ fontSize: '0.85rem', fontWeight: 500 }}>{item.viTri || 'Không xác định'}</Typography>
               </Grid>
               <Grid item xs={6}>
-                <Typography variant="caption" color="text.secondary">Nhà cung cấp:</Typography>
-                <Typography variant="body2">{item.nhaCungCap || 'Không xác định'}</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', display: 'block', mb: 0.5 }}>Nhà cung cấp:</Typography>
+                <Typography variant="body2" sx={{ fontSize: '0.85rem', fontWeight: 500 }}>{item.nhaCungCap || 'Không xác định'}</Typography>
               </Grid>
               <Grid item xs={6}>
-                <Typography variant="caption" color="text.secondary">Giá trị:</Typography>
-                <Typography variant="body2">
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', display: 'block', mb: 0.5 }}>Giá trị:</Typography>
+                <Typography variant="body2" sx={{ fontSize: '0.85rem', fontWeight: 500 }}>
                   {item.giaTri ? `${item.giaTri.toLocaleString()} VNĐ` : 'Không xác định'}
                 </Typography>
               </Grid>
@@ -327,50 +327,104 @@ const MobileCardView: React.FC<MobileCardViewProps> = ({
   };
 
   return (
-    <Box sx={{ mt: 2 }}>
-      {data.map((item, index) => (
-        <Card
-          key={item.id}
-          sx={{
-            mb: 2,
-            borderRadius: 2,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            '&:hover': {
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              transform: 'translateY(-2px)',
-            },
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            cursor: 'pointer',
-          }}
-          onClick={() => onView && onView(item)}
-        >
-          <CardContent sx={{ p: 2.5 }}>
-            {renderCardContent(item, index)}
-            
-            <Divider sx={{ my: 2 }} />
-            
-            <Box display="flex" justifyContent="flex-end" gap={1}>
-              {onQrCode && type === 'thietBi' && (
-                <IconButton 
-                  size="small" 
-                  onClick={() => onQrCode(item)}
-                  sx={{ 
-                    color: theme.palette.primary.main,
-                    backgroundColor: 'rgba(25, 118, 210, 0.1)',
-                    '&:hover': {
-                      backgroundColor: 'rgba(25, 118, 210, 0.2)',
-                      transform: 'scale(1.1)',
-                    },
-                    transition: 'all 0.3s ease'
-                  }}
-                >
-                  <QrCodeIcon />
-                </IconButton>
-              )}
-            </Box>
-          </CardContent>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+      {data.length === 0 ? (
+        <Card sx={{ p: 3, textAlign: 'center', borderRadius: 2 }}>
+          <Typography variant="body1" color="text.secondary">
+            Không có dữ liệu để hiển thị
+          </Typography>
         </Card>
-      ))}
+      ) : (
+        data.map((item, index) => (
+          <Card
+            key={item.id || index}
+            sx={{
+              borderRadius: 2,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+              '&:hover': {
+                boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
+                transform: 'translateY(-1px)',
+              },
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              cursor: 'pointer',
+              border: '1px solid',
+              borderColor: 'divider',
+            }}
+            onClick={() => onView && onView(item)}
+          >
+            <CardContent sx={{ p: 2 }}>
+              {renderCardContent(item, index)}
+              
+              {/* Action Buttons */}
+              <Box display="flex" justifyContent="flex-end" gap={1} mt={1.5}>
+                {onQrCode && (
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onQrCode(item);
+                    }}
+                    sx={{
+                      color: theme.palette.primary.main,
+                      backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                      width: 32,
+                      height: 32,
+                      '&:hover': {
+                        backgroundColor: 'rgba(25, 118, 210, 0.15)',
+                        transform: 'scale(1.05)',
+                      },
+                    }}
+                  >
+                    <QrCodeIcon sx={{ fontSize: '1.1rem' }} />
+                  </IconButton>
+                )}
+                {onEdit && (
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit(item);
+                    }}
+                    sx={{
+                      color: theme.palette.primary.main,
+                      backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                      width: 32,
+                      height: 32,
+                      '&:hover': {
+                        backgroundColor: 'rgba(25, 118, 210, 0.15)',
+                        transform: 'scale(1.05)',
+                      },
+                    }}
+                  >
+                    <EditIcon sx={{ fontSize: '1.1rem' }} />
+                  </IconButton>
+                )}
+                {onDelete && (
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(item);
+                    }}
+                    sx={{
+                      color: theme.palette.error.main,
+                      backgroundColor: 'rgba(211, 47, 47, 0.08)',
+                      width: 32,
+                      height: 32,
+                      '&:hover': {
+                        backgroundColor: 'rgba(211, 47, 47, 0.15)',
+                        transform: 'scale(1.05)',
+                      },
+                    }}
+                  >
+                    <DeleteIcon sx={{ fontSize: '1.1rem' }} />
+                  </IconButton>
+                )}
+              </Box>
+            </CardContent>
+          </Card>
+        ))
+      )}
     </Box>
   );
 };

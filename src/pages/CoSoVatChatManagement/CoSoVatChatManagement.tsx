@@ -297,7 +297,7 @@ const CoSoVatChatManagement: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: { xs: 0, md: 3 }, pb: { xs: '100px', md: 3 } }}>
+    <Box sx={{ p: { xs: 0, md: 3 }, pb: { xs: 0, md: 3 }, mt: { xs: 2, md: 0 } , height: '100vh' }}>
       {/* Mobile Header */}
       {isMobile && (
         <Portal>
@@ -319,7 +319,7 @@ const CoSoVatChatManagement: React.FC = () => {
           >
             <Box display="flex" alignItems="center" justifyContent="space-between" mb={0.5}>
               <Box display="flex" alignItems="center">
-                <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
+                <Typography variant="h6" sx={{ fontSize: '1.2rem', fontWeight: 600 }}>
                   Quản Lý Cơ Sở Vật Chất
                 </Typography>
               </Box>
@@ -380,49 +380,49 @@ const CoSoVatChatManagement: React.FC = () => {
             )}
             
             {/* Filter Buttons */}
-            <Box display="flex" gap={1.5} mt={1}>
-              <Button
+            <Box display="flex" gap={0.5} mt={1}>
+              <Chip
+                label="Tình trạng"
                 size="small"
                 variant="outlined"
                 onClick={() => handleOpenFilterDialog('status')}
                 sx={{ 
-                  borderRadius: '16px',
                   fontSize: '0.75rem',
-                  py: 0.75,
-                  px: 2,
-                  minWidth: 'auto'
+                  height: '30px',
+                  '& .MuiChip-label': {
+                    px: 1.5,
+                    fontSize: '0.75rem',
+                  }
                 }}
-              >
-                Tình trạng
-              </Button>
-              <Button
+              />
+              <Chip
+                label="Loại"
                 size="small"
                 variant="outlined"
                 onClick={() => handleOpenFilterDialog('type')}
                 sx={{ 
-                  borderRadius: '16px',
                   fontSize: '0.75rem',
-                  py: 0.75,
-                  px: 2,
-                  minWidth: 'auto'
+                  height: '30px',
+                  '& .MuiChip-label': {
+                    px: 1.5,
+                    fontSize: '0.75rem',
+                  }
                 }}
-              >
-                Loại
-              </Button>
-              <Button
+              />
+              <Chip
+                label="Vị trí"
                 size="small"
                 variant="outlined"
                 onClick={() => handleOpenFilterDialog('location')}
                 sx={{ 
-                  borderRadius: '16px',
                   fontSize: '0.75rem',
-                  py: 0.75,
-                  px: 2,
-                  minWidth: 'auto'
+                  height: '30px',
+                  '& .MuiChip-label': {
+                    px: 1.5,
+                    fontSize: '0.75rem',
+                  }
                 }}
-              >
-                Vị trí
-              </Button>
+              />
             </Box>
           </Box>
         </Portal>

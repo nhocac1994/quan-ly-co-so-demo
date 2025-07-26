@@ -256,7 +256,7 @@ const ThongBaoPage: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: { xs: 0, md: 3 }, pb: { xs: '100px', md: 3 } }}>
+    <Box sx={{ p: { xs: 0, md: 3 }, pb: { xs: '120px', md: 3 }, mt: { xs: 2, md: 0 } }}>
       {/* Mobile Header */}
       {isMobile && (
         <Portal>
@@ -277,58 +277,58 @@ const ThongBaoPage: React.FC = () => {
             }}
           >
             <Box display="flex" alignItems="center" justifyContent="space-between" mb={0.5}>
-              <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
+              <Typography variant="h6" sx={{ fontSize: '1.2rem', fontWeight: 600 }}>
                 Quản Lý Thông Báo
               </Typography>
             </Box>
             
             {/* Filter Buttons */}
-            <Box display="flex" gap={1.5} mt={1}>
-              <Button
+            <Box display="flex" gap={0.5} mt={1}>
+              <Chip
+                label="Loại"
                 size="small"
                 variant="outlined"
                 onClick={() => setTypeFilter(typeFilter === 'all' ? 'thongBaoChung' : 'all')}
                 sx={{ 
-                  borderRadius: '16px',
                   fontSize: '0.75rem',
-                  py: 0.75,
-                  px: 2,
-                  minWidth: 'auto',
-                  backgroundColor: typeFilter !== 'all' ? 'rgba(25, 118, 210, 0.1)' : 'transparent'
+                  height: '30px',
+                  backgroundColor: typeFilter !== 'all' ? 'rgba(25, 118, 210, 0.1)' : 'transparent',
+                  '& .MuiChip-label': {
+                    px: 1.5,
+                    fontSize: '0.75rem',
+                  }
                 }}
-              >
-                Loại
-              </Button>
-              <Button
+              />
+              <Chip
+                label="Ưu tiên"
                 size="small"
                 variant="outlined"
                 onClick={() => setPriorityFilter(priorityFilter === 'all' ? 'trungBinh' : 'all')}
                 sx={{ 
-                  borderRadius: '16px',
                   fontSize: '0.75rem',
-                  py: 0.75,
-                  px: 2,
-                  minWidth: 'auto',
-                  backgroundColor: priorityFilter !== 'all' ? 'rgba(25, 118, 210, 0.1)' : 'transparent'
+                  height: '30px',
+                  backgroundColor: priorityFilter !== 'all' ? 'rgba(25, 118, 210, 0.1)' : 'transparent',
+                  '& .MuiChip-label': {
+                    px: 1.5,
+                    fontSize: '0.75rem',
+                  }
                 }}
-              >
-                Ưu tiên
-              </Button>
-              <Button
+              />
+              <Chip
+                label="Trạng thái"
                 size="small"
                 variant="outlined"
                 onClick={() => setStatusFilter(statusFilter === 'all' ? 'chuaDoc' : 'all')}
                 sx={{ 
-                  borderRadius: '16px',
                   fontSize: '0.75rem',
-                  py: 0.75,
-                  px: 2,
-                  minWidth: 'auto',
-                  backgroundColor: statusFilter !== 'all' ? 'rgba(25, 118, 210, 0.1)' : 'transparent'
+                  height: '30px',
+                  backgroundColor: statusFilter !== 'all' ? 'rgba(25, 118, 210, 0.1)' : 'transparent',
+                  '& .MuiChip-label': {
+                    px: 1.5,
+                    fontSize: '0.75rem',
+                  }
                 }}
-              >
-                Trạng thái
-              </Button>
+              />
             </Box>
           </Box>
         </Portal>

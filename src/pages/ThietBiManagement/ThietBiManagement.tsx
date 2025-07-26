@@ -291,7 +291,13 @@ const ThietBiManagement: React.FC = () => {
 
   return (
     <>
-      <Box sx={{ p: { xs: 2, md: 3 }, pb: { xs: '120px', md: 3 } }}>
+      <Box sx={{ 
+        p: { xs: 1, md: 3 }, 
+        pb: { xs: 1, md: 3 }, 
+        mt: { xs: 0, md: 0 },
+        minHeight: { xs: 'auto', md: 'auto' },
+        height: { xs: 'auto', md: 'auto' }
+      }}>
         {/* Mobile Header với tiêu đề - Fixed với Portal */}
         {isMobile && (
           <Portal>
@@ -315,9 +321,9 @@ const ThietBiManagement: React.FC = () => {
                   right: 0,
                   zIndex: 1001, // Cao hơn header
                   backgroundColor: 'white',
-                  pt: 1.5, // Giảm padding top
-                  pb: 1.5, // Giảm padding bottom
-                  px: 2,
+                  pt: 1,
+                  pb: 1,
+                  px: 0,
                   borderBottom: '1px solid',
                   borderColor: 'divider',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
@@ -330,32 +336,32 @@ const ThietBiManagement: React.FC = () => {
                   onChange={(e) => handleSearchInputChange(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSearchInputSubmit()}
                   autoFocus={searchInputOpen}
-                  size="small" // Giảm kích thước
+                  size="small"
                   sx={{
                     backgroundColor: 'white',
                     borderRadius: 2,
                     '& .MuiOutlinedInput-root': {
-                      borderRadius: '16px', // Bo góc 16px
-                      fontSize: '0.9rem', // Giảm font size
-                      height: '40px', // Giảm chiều cao
+                      borderRadius: '16px',
+                      fontSize: '0.9rem',
+                      height: '40px',
                       '& fieldset': {
                         borderColor: 'primary.main',
                         transition: 'border-color 0.3s ease',
-                        borderRadius: '16px', // Bo góc 16px
+                        borderRadius: '16px',
                       },
                       '&:hover fieldset': {
                         borderColor: 'primary.dark',
-                        borderRadius: '16px', // Bo góc 16px
+                        borderRadius: '16px',
                       },
                       '&.Mui-focused fieldset': {
                         borderColor: 'primary.main',
                         borderWidth: '2px',
-                        borderRadius: '16px', // Bo góc 16px
+                        borderRadius: '16px',
                       },
                     },
                     '& .MuiInputBase-input': {
                       transition: 'all 0.3s ease',
-                      padding: '8px 16px', // Giảm padding
+                      padding: '8px 16px',
                     },
                   }}
                   InputProps={{
@@ -382,26 +388,26 @@ const ThietBiManagement: React.FC = () => {
               </Box>
             </Slide>
 
-            {/* Header Content - Không thay đổi chiều cao */}
+            {/* Header Content */}
             <Box
               sx={{
                 position: 'fixed',
-                top: searchInputOpen ? '80px' : 0, // Điều chỉnh vị trí khi search mở
+                top: searchInputOpen ? '80px' : 0,
                 left: 0,
                 right: 0,
                 zIndex: 1000,
                 backgroundColor: 'white',
                 borderBottom: '1px solid',
                 borderColor: 'divider',
-                pt: 1,
-                pb: 1,
+                pt: 2,
+                pb: 2,
                 px: 2,
                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                 transition: 'top 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
               }}
             >
-              <Box display="flex" alignItems="center" justifyContent="space-between" mb={0.5}>
-                <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
+              <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+                <Typography variant="h6" sx={{ fontSize: '1.2rem', fontWeight: 600 }}>
                   Quản Lý Thiết Bị
                 </Typography>
                 <IconButton
@@ -410,6 +416,8 @@ const ThietBiManagement: React.FC = () => {
                   sx={{ 
                     color: 'primary.main',
                     backgroundColor: 'rgba(25, 118, 210, 0.1)',
+                    width: 36,
+                    height: 36,
                     '&:hover': { backgroundColor: 'rgba(25, 118, 210, 0.2)' }
                   }}
                 >
@@ -418,49 +426,49 @@ const ThietBiManagement: React.FC = () => {
               </Box>
               
               {/* Filter Buttons */}
-              <Box display="flex" gap={1.5} mt={1}>
-                <Button
+              <Box display="flex" gap={0.5} mt={1}>
+                <Chip
+                  label="Tình trạng"
                   size="small"
                   variant="outlined"
                   onClick={() => handleOpenFilterDialog('status')}
                   sx={{ 
-                    borderRadius: '16px',
                     fontSize: '0.75rem',
-                    py: 0.75,
-                    px: 2,
-                    minWidth: 'auto'
+                    height: '30px',
+                    '& .MuiChip-label': {
+                      px: 1.5,
+                      fontSize: '0.75rem',
+                    }
                   }}
-                >
-                  Tình trạng
-                </Button>
-                <Button
+                />
+                <Chip
+                  label="Loại"
                   size="small"
                   variant="outlined"
                   onClick={() => handleOpenFilterDialog('type')}
                   sx={{ 
-                    borderRadius: '16px',
                     fontSize: '0.75rem',
-                    py: 0.75,
-                    px: 2,
-                    minWidth: 'auto'
+                    height: '30px',
+                    '& .MuiChip-label': {
+                      px: 1.5,
+                      fontSize: '0.75rem',
+                    }
                   }}
-                >
-                  Loại
-                </Button>
-                <Button
+                />
+                <Chip
+                  label="Vị trí"
                   size="small"
                   variant="outlined"
                   onClick={() => handleOpenFilterDialog('location')}
                   sx={{ 
-                    borderRadius: '16px',
                     fontSize: '0.75rem',
-                    py: 0.75,
-                    px: 2,
-                    minWidth: 'auto'
+                    height: '30px',
+                    '& .MuiChip-label': {
+                      px: 1.5,
+                      fontSize: '0.75rem',
+                    }
                   }}
-                >
-                  Vị trí
-                </Button>
+                />
               </Box>
             </Box>
           </Portal>

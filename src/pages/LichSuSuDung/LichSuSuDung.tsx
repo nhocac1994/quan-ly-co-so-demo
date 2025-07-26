@@ -334,7 +334,7 @@ const LichSuSuDungPage: React.FC = () => {
           >
             <Box display="flex" alignItems="center" justifyContent="space-between" mb={0.5}>
               <Box display="flex" alignItems="center">
-                <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
+                <Typography variant="h6" sx={{ fontSize: '1.2rem', fontWeight: 600 }}>
                   Lịch Sử Sử Dụng
                 </Typography>
               </Box>
@@ -395,49 +395,49 @@ const LichSuSuDungPage: React.FC = () => {
             )}
             
             {/* Filter Buttons */}
-            <Box display="flex" gap={1} mt={0.5}>
-              <Button
+            <Box display="flex" gap={0.5} mt={0.5}>
+              <Chip
+                label="Tình trạng"
                 size="small"
                 variant="outlined"
                 onClick={() => handleOpenFilterDialog('status')}
                 sx={{ 
-                  borderRadius: '16px',
                   fontSize: '0.75rem',
-                  py: 0.5,
-                  px: 1.5,
-                  minWidth: 'auto'
+                  height: '30px',
+                  '& .MuiChip-label': {
+                    px: 1.5,
+                    fontSize: '0.75rem',
+                  }
                 }}
-              >
-                Tình trạng
-              </Button>
-              <Button
+              />
+              <Chip
+                label="Vai trò"
                 size="small"
                 variant="outlined"
                 onClick={() => handleOpenFilterDialog('role')}
                 sx={{ 
-                  borderRadius: '16px',
                   fontSize: '0.75rem',
-                  py: 0.5,
-                  px: 1.5,
-                  minWidth: 'auto'
+                  height: '30px',
+                  '& .MuiChip-label': {
+                    px: 1.5,
+                    fontSize: '0.75rem',
+                  }
                 }}
-              >
-                Vai trò
-              </Button>
-              <Button
+              />
+              <Chip
+                label="Loại"
                 size="small"
                 variant="outlined"
                 onClick={() => handleOpenFilterDialog('type')}
                 sx={{ 
-                  borderRadius: '16px',
                   fontSize: '0.75rem',
-                  py: 0.5,
-                  px: 1.5,
-                  minWidth: 'auto'
+                  height: '30px',
+                  '& .MuiChip-label': {
+                    px: 1.5,
+                    fontSize: '0.75rem',
+                  }
                 }}
-              >
-                Loại
-              </Button>
+              />
             </Box>
           </Box>
         </Portal>

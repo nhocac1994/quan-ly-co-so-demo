@@ -163,7 +163,13 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <Box sx={{ p: { xs: 0, md: 3 }, pb: { xs: '100px', md: 3 } }}>
+    <Box sx={{ 
+      p: { xs: 1, md: 3 }, 
+      pb: { xs: 1, md: 3 }, 
+      mt: { xs: 0, md: 0 },
+      minHeight: { xs: 'auto', md: 'auto' },
+      height: { xs: 'auto', md: 'auto' }
+    }}>
       {/* Mobile Header */}
       {isMobile && (
         <Portal>
@@ -177,13 +183,13 @@ const Dashboard: React.FC = () => {
               backgroundColor: 'white',
               borderBottom: '1px solid',
               borderColor: 'divider',
-              pt: 2,
-              pb: 2,
+              pt: 1,
+              pb: 1,
               px: 2,
               boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
             }}
           >
-            <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600 }}>
+            <Typography variant="h6" sx={{ fontSize: '1.2rem', fontWeight: 600 }}>
               🏠 Trang Chủ
             </Typography>
           </Box>
@@ -191,12 +197,12 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Spacer for mobile header */}
-      {isMobile && <Box sx={{ height: '60px' }} />}
+      {isMobile && <Box sx={{ height: '50px' }} />}
 
       {/* Desktop Header */}
       {!isMobile && (
         <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
+          <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold', fontSize: '1.2rem' }}>
             🏠 Trang Chủ - Dashboard
           </Typography>
           <Typography variant="body1" color="text.secondary">
@@ -206,8 +212,8 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Stats Cards */}
-      <Grid container spacing={isMobile ? 2 : 3} sx={{ mb: isMobile ? 2 : 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
+      <Grid container spacing={isMobile ? 1.5 : 3} sx={{ mb: isMobile ? 2 : 4 }}>
+        <Grid item xs={6} sm={6} md={3}>
           <Card className="stagger-item hover-lift" sx={{ 
             borderRadius: 2,
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
@@ -217,11 +223,11 @@ const Dashboard: React.FC = () => {
             },
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           }}>
-            <CardContent sx={{ p: isMobile ? 2 : 3 }}>
+            <CardContent sx={{ p: isMobile ? 1.5 : 3 }}>
               <Box display="flex" alignItems="center">
-                <DevicesIcon color="primary" sx={{ fontSize: isMobile ? 32 : 40, mr: 2 }} />
+                <DevicesIcon color="primary" sx={{ fontSize: isMobile ? 28 : 40, mr: isMobile ? 1 : 2 }} />
                 <Box>
-                  <Typography variant={isMobile ? "h5" : "h4"} color="primary" sx={{ fontWeight: 700 }}>
+                  <Typography variant={isMobile ? "h6" : "h4"} color="primary" sx={{ fontWeight: 700 }}>
                     {stats.totalThietBi}
                   </Typography>
                   <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">
@@ -233,7 +239,7 @@ const Dashboard: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={6} md={3}>
           <Card className="stagger-item hover-lift" sx={{ 
             borderRadius: 2,
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
@@ -243,11 +249,11 @@ const Dashboard: React.FC = () => {
             },
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           }}>
-            <CardContent sx={{ p: isMobile ? 2 : 3 }}>
+            <CardContent sx={{ p: isMobile ? 1.5 : 3 }}>
               <Box display="flex" alignItems="center">
-                <BusinessIcon color="secondary" sx={{ fontSize: isMobile ? 32 : 40, mr: 2 }} />
+                <BusinessIcon color="secondary" sx={{ fontSize: isMobile ? 28 : 40, mr: isMobile ? 1 : 2 }} />
                 <Box>
-                  <Typography variant={isMobile ? "h5" : "h4"} color="secondary" sx={{ fontWeight: 700 }}>
+                  <Typography variant={isMobile ? "h6" : "h4"} color="secondary" sx={{ fontWeight: 700 }}>
                     {stats.totalCoSoVatChat}
                   </Typography>
                   <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">
@@ -259,7 +265,7 @@ const Dashboard: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={6} md={3}>
           <Card className="stagger-item hover-lift" sx={{ 
             borderRadius: 2,
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
@@ -269,11 +275,11 @@ const Dashboard: React.FC = () => {
             },
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           }}>
-            <CardContent sx={{ p: isMobile ? 2 : 3 }}>
+            <CardContent sx={{ p: isMobile ? 1.5 : 3 }}>
               <Box display="flex" alignItems="center">
-                <HistoryIcon color="info" sx={{ fontSize: isMobile ? 32 : 40, mr: 2 }} />
+                <HistoryIcon color="info" sx={{ fontSize: isMobile ? 28 : 40, mr: isMobile ? 1 : 2 }} />
                 <Box>
-                  <Typography variant={isMobile ? "h5" : "h4"} color="info.main" sx={{ fontWeight: 700 }}>
+                  <Typography variant={isMobile ? "h6" : "h4"} color="info.main" sx={{ fontWeight: 700 }}>
                     {stats.lichSuMuonHienTai}
                   </Typography>
                   <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">
@@ -285,7 +291,7 @@ const Dashboard: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={6} md={3}>
           <Card className="stagger-item hover-lift" sx={{ 
             borderRadius: 2,
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
@@ -295,11 +301,11 @@ const Dashboard: React.FC = () => {
             },
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           }}>
-            <CardContent sx={{ p: isMobile ? 2 : 3 }}>
+            <CardContent sx={{ p: isMobile ? 1.5 : 3 }}>
               <Box display="flex" alignItems="center">
-                <CheckCircleIcon color="success" sx={{ fontSize: isMobile ? 32 : 40, mr: 2 }} />
+                <CheckCircleIcon color="success" sx={{ fontSize: isMobile ? 28 : 40, mr: isMobile ? 1 : 2 }} />
                 <Box>
-                  <Typography variant={isMobile ? "h5" : "h4"} color="success.main" sx={{ fontWeight: 700 }}>
+                  <Typography variant={isMobile ? "h6" : "h4"} color="success.main" sx={{ fontWeight: 700 }}>
                     {stats.baoTriDangThucHien}
                   </Typography>
                   <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">
