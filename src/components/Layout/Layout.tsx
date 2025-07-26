@@ -35,7 +35,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import AutoSyncStatus from '../AutoSyncStatus/AutoSyncStatus';
+import { AutoSyncStatusIcon } from '../AutoSyncStatus/AutoSyncStatus';
 import MobileBottomNavigation from './BottomNavigation';
 
 const drawerWidth = 240;
@@ -254,10 +254,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             Quản Lý Cơ Sở Vật Chất
           </Typography>
 
-          {/* Auto Sync Status */}
-          <Box sx={{ mr: 2 }}>
-            <AutoSyncStatus />
-          </Box>
+                      {/* Auto Sync Status Icon */}
+            <Box sx={{ mr: 2 }}>
+              <AutoSyncStatusIcon />
+            </Box>
 
           {/* User Menu */}
           <Box display="flex" alignItems="center" gap={1}>

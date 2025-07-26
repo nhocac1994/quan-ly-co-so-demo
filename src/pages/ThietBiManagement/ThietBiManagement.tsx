@@ -37,6 +37,7 @@ import { ThietBi } from '../../types';
 import QRCodeModal from '../../components/QRCodeModal/QRCodeModal';
 import MobileCardView from '../../components/MobileCardView/MobileCardView';
 import MobileFilterDialog from '../../components/MobileFilterDialog/MobileFilterDialog';
+import { AutoSyncStatusIcon } from '../../components/AutoSyncStatus/AutoSyncStatus';
 import { initializeSampleEquipment, forceInitializeSampleEquipment } from '../../data/sampleEquipment';
 
 const ThietBiManagement: React.FC = () => {
@@ -64,9 +65,21 @@ const ThietBiManagement: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   useEffect(() => {
-    // Khởi tạo dữ liệu mẫu nếu chưa có
-    initializeSampleEquipment();
     loadThietBiList();
+  }, []);
+
+  // Lắng nghe sự kiện refresh data từ AutoSync
+  useEffect(() => {
+    const handleDataRefreshed = () => {
+      console.log('🔄 ThietBiManagement: Nhận sự kiện dataRefreshed, cập nhật dữ liệu...');
+      loadThietBiList();
+    };
+
+    window.addEventListener('dataRefreshed', handleDataRefreshed);
+    
+    return () => {
+      window.removeEventListener('dataRefreshed', handleDataRefreshed);
+    };
   }, []);
 
   const loadThietBiList = () => {
@@ -410,19 +423,22 @@ const ThietBiManagement: React.FC = () => {
                 <Typography variant="h6" sx={{ fontSize: '1.2rem', fontWeight: 600 }}>
                   Quản Lý Thiết Bị
                 </Typography>
-                <IconButton
-                  size="small"
-                  onClick={handleSearchIconClick}
-                  sx={{ 
-                    color: 'primary.main',
-                    backgroundColor: 'rgba(25, 118, 210, 0.1)',
-                    width: 36,
-                    height: 36,
-                    '&:hover': { backgroundColor: 'rgba(25, 118, 210, 0.2)' }
-                  }}
-                >
-                  <SearchIcon fontSize="small" />
-                </IconButton>
+                <Box display="flex" alignItems="center" gap={1}>
+                  <AutoSyncStatusIcon />
+                  <IconButton
+                    size="small"
+                    onClick={handleSearchIconClick}
+                    sx={{ 
+                      color: 'primary.main',
+                      backgroundColor: 'rgba(25, 118, 210, 0.1)',
+                      width: 36,
+                      height: 36,
+                      '&:hover': { backgroundColor: 'rgba(25, 118, 210, 0.2)' }
+                    }}
+                  >
+                    <SearchIcon fontSize="small" />
+                  </IconButton>
+                </Box>
               </Box>
               
               {/* Filter Buttons */}
@@ -633,7 +649,7 @@ const ThietBiManagement: React.FC = () => {
               <TableBody>
                 {filteredList.map((thietBi, index) => (
                   <TableRow
-                    key={thietBi.id}
+                    key={`${thietBi.id}-${index}`}
                     onClick={() => handleViewDetail(thietBi)}
                     sx={{
                       cursor: 'pointer',

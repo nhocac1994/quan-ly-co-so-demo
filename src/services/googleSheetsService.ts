@@ -204,35 +204,52 @@ class GoogleSheetsService {
     }
   }
 
-  // Đọc dữ liệu từ sheet
+  // Đọc dữ liệu từ Google Sheets với retry logic
   async readSheet(sheetName: string): Promise<any[][]> {
-    try {
-      if (!this.config) {
-        throw new Error('Chưa khởi tạo service');
-      }
+    const maxRetries = 5;
+    let lastError: Error | null = null;
 
-      const accessToken = await this.getAccessToken();
-      const response = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${this.config.spreadsheetId}/values/${sheetName}!A:Z`,
-        {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const accessToken = await this.getAccessToken();
+        const response = await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${this.config?.spreadsheetId}/values/${sheetName}!A:Z`,
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            }
           }
+        );
+
+        if (response.status === 429) {
+          // Rate limiting - wait with exponential backoff
+          const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 30000); // Max 30s
+          console.log(`Rate limited (429) reading ${sheetName}, waiting ${waitTime}ms before retry ${attempt}/${maxRetries}`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue;
         }
-      );
 
-      if (!response.ok) {
-        throw new Error(`Lỗi đọc sheet: ${response.status} ${response.statusText}`);
+        if (!response.ok) {
+          throw new Error(`Lỗi đọc sheet: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log(`✅ Đọc thành công sheet ${sheetName}:`, data.values?.length || 0, 'rows');
+        return data.values || [];
+      } catch (error) {
+        lastError = error as Error;
+        console.error(`❌ Lỗi đọc sheet ${sheetName} (attempt ${attempt}/${maxRetries}):`, error);
+        
+        if (attempt < maxRetries) {
+          // Wait before retry
+          const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
       }
-
-      const data = await response.json();
-      console.log(`✅ Đọc thành công sheet ${sheetName}:`, data.values?.length || 0, 'rows');
-      return data.values || [];
-    } catch (error) {
-      console.error(`❌ Lỗi đọc sheet ${sheetName}:`, error);
-      throw new Error(`Không thể đọc dữ liệu từ sheet ${sheetName}`);
     }
+
+    throw lastError || new Error(`Không thể đọc dữ liệu từ sheet ${sheetName}`);
   }
 
   // Ghi dữ liệu vào Google Sheets với retry logic
@@ -259,7 +276,7 @@ class GoogleSheetsService {
         if (clearResponse.status === 429) {
           // Rate limiting - wait with exponential backoff
           const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 30000); // Max 30s
-          console.log(`Rate limited (429), waiting ${waitTime}ms before retry ${attempt}/${maxRetries}`);
+          console.log(`Rate limited (429) writing clear ${sheetName}, waiting ${waitTime}ms before retry ${attempt}/${maxRetries}`);
           await new Promise(resolve => setTimeout(resolve, waitTime));
           continue;
         }
@@ -368,6 +385,176 @@ class GoogleSheetsService {
     }
   }
 
+  // Đọc tất cả dữ liệu từ Google Sheets
+  async readAllData(): Promise<{
+    thietBi: any[];
+    coSoVatChat: any[];
+    lichSuSuDung: any[];
+    baoTri: any[];
+    thongBao: any[];
+    nguoiDung: any[];
+  }> {
+    try {
+      console.log('📥 Bắt đầu đọc tất cả dữ liệu từ Google Sheets...');
+
+      // Đọc từng sheet với delay để tránh rate limiting
+      const thietBi = await this.readSheetData('ThietBi');
+      await this.delay(2000); // 2s delay
+
+      const coSoVatChat = await this.readSheetData('CoSoVatChat');
+      await this.delay(2000); // 2s delay
+
+      const lichSuSuDung = await this.readSheetData('LichSuSuDung');
+      await this.delay(2000); // 2s delay
+
+      const baoTri = await this.readSheetData('BaoTri');
+      await this.delay(2000); // 2s delay
+
+      const thongBao = await this.readSheetData('ThongBao');
+      await this.delay(2000); // 2s delay
+
+      const nguoiDung = await this.readSheetData('NguoiDung');
+
+      console.log('✅ Đọc tất cả dữ liệu thành công!');
+      return { thietBi, coSoVatChat, lichSuSuDung, baoTri, thongBao, nguoiDung };
+    } catch (error) {
+      console.error('❌ Lỗi khi đọc tất cả dữ liệu:', error);
+      throw error;
+    }
+  }
+
+  // Đọc dữ liệu từ một sheet và chuyển đổi thành objects
+  private async readSheetData(sheetName: string): Promise<any[]> {
+    try {
+      const rawData = await this.readSheet(sheetName);
+      
+      if (rawData.length < 2) {
+        console.log(`📄 Sheet ${sheetName} trống hoặc chỉ có header`);
+        return [];
+      }
+
+      const headers = rawData[0];
+      const dataRows = rawData.slice(1);
+      
+      return dataRows.map(row => {
+        const obj: any = {};
+        headers.forEach((header: string, index: number) => {
+          if (row[index] !== undefined && row[index] !== '') {
+            obj[header] = row[index];
+          }
+        });
+        return obj;
+      });
+    } catch (error) {
+      console.error(`❌ Lỗi khi đọc sheet ${sheetName}:`, error);
+      return [];
+    }
+  }
+
+  // Đồng bộ dữ liệu từ Google Sheets về localStorage
+  async syncFromGoogleSheets(): Promise<{
+    thietBi: any[];
+    coSoVatChat: any[];
+    lichSuSuDung: any[];
+    baoTri: any[];
+    thongBao: any[];
+    nguoiDung: any[];
+  }> {
+    try {
+      console.log('🔄 Bắt đầu đồng bộ dữ liệu từ Google Sheets...');
+      
+      const data = await this.readAllData();
+      
+      // Lưu vào localStorage
+      localStorage.setItem('thietBi', JSON.stringify(data.thietBi));
+      localStorage.setItem('coSoVatChat', JSON.stringify(data.coSoVatChat));
+      localStorage.setItem('lichSuSuDung', JSON.stringify(data.lichSuSuDung));
+      localStorage.setItem('baoTri', JSON.stringify(data.baoTri));
+      localStorage.setItem('thongBao', JSON.stringify(data.thongBao));
+      localStorage.setItem('nguoiDung', JSON.stringify(data.nguoiDung));
+      
+      console.log('✅ Đồng bộ từ Google Sheets thành công!');
+      return data;
+    } catch (error) {
+      console.error('❌ Lỗi khi đồng bộ từ Google Sheets:', error);
+      throw error;
+    }
+  }
+
+  // Đồng bộ hai chiều (merge dữ liệu)
+  async syncBidirectional(localStorageData: {
+    thietBi: any[];
+    coSoVatChat: any[];
+    lichSuSuDung: any[];
+    baoTri: any[];
+    thongBao: any[];
+    nguoiDung: any[];
+  }): Promise<void> {
+    try {
+      console.log('🔄 Bắt đầu đồng bộ hai chiều...');
+      
+      // Đọc dữ liệu từ Google Sheets
+      const sheetsData = await this.readAllData();
+      
+      // Merge dữ liệu (ưu tiên dữ liệu mới nhất)
+      const mergedData = {
+        thietBi: this.mergeData(localStorageData.thietBi, sheetsData.thietBi),
+        coSoVatChat: this.mergeData(localStorageData.coSoVatChat, sheetsData.coSoVatChat),
+        lichSuSuDung: this.mergeData(localStorageData.lichSuSuDung, sheetsData.lichSuSuDung),
+        baoTri: this.mergeData(localStorageData.baoTri, sheetsData.baoTri),
+        thongBao: this.mergeData(localStorageData.thongBao, sheetsData.thongBao),
+        nguoiDung: this.mergeData(localStorageData.nguoiDung, sheetsData.nguoiDung)
+      };
+      
+      // Lưu merged data vào localStorage
+      localStorage.setItem('thietBi', JSON.stringify(mergedData.thietBi));
+      localStorage.setItem('coSoVatChat', JSON.stringify(mergedData.coSoVatChat));
+      localStorage.setItem('lichSuSuDung', JSON.stringify(mergedData.lichSuSuDung));
+      localStorage.setItem('baoTri', JSON.stringify(mergedData.baoTri));
+      localStorage.setItem('thongBao', JSON.stringify(mergedData.thongBao));
+      localStorage.setItem('nguoiDung', JSON.stringify(mergedData.nguoiDung));
+      
+      // Đồng bộ merged data lên Google Sheets
+      await this.syncAllData(mergedData);
+      
+      console.log('✅ Đồng bộ hai chiều thành công!');
+    } catch (error) {
+      console.error('❌ Lỗi khi đồng bộ hai chiều:', error);
+      throw error;
+    }
+  }
+
+  // Merge dữ liệu từ hai nguồn
+  private mergeData(localData: any[], sheetsData: any[]): any[] {
+    const merged = new Map();
+    
+    // Thêm dữ liệu từ localStorage
+    localData.forEach(item => {
+      if (item.id) {
+        merged.set(item.id, item);
+      }
+    });
+    
+    // Thêm dữ liệu từ Google Sheets (ghi đè nếu cần)
+    sheetsData.forEach(item => {
+      if (item.id) {
+        const existing = merged.get(item.id);
+        if (!existing || this.isNewer(item, existing)) {
+          merged.set(item.id, item);
+        }
+      }
+    });
+    
+    return Array.from(merged.values());
+  }
+
+  // Kiểm tra item nào mới hơn
+  private isNewer(item1: any, item2: any): boolean {
+    const date1 = item1.ngayCapNhat || item1.ngayTao || item1.ngayNhap || '0';
+    const date2 = item2.ngayCapNhat || item2.ngayTao || item2.ngayNhap || '0';
+    return new Date(date1) > new Date(date2);
+  }
+
   // Chuyển đổi dữ liệu sang format sheet (để ghi theo batch)
   private convertDataToSheetFormat(data: any[]): any[][] {
     if (data.length === 0) return [];
@@ -409,6 +596,17 @@ export const initializeGoogleSheets = async (
 
 export const syncDataToGoogleSheets = async (data: any): Promise<void> => {
   await googleSheetsService.syncAllData(data);
+};
+
+export const syncDataFromGoogleSheets = async (): Promise<{
+  thietBi: any[];
+  coSoVatChat: any[];
+  lichSuSuDung: any[];
+  baoTri: any[];
+  thongBao: any[];
+  nguoiDung: any[];
+}> => {
+  return await googleSheetsService.syncFromGoogleSheets();
 };
 
 export const testGoogleSheetsConnection = async (): Promise<boolean> => {

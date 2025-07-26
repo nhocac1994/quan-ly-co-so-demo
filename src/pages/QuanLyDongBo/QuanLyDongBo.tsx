@@ -9,13 +9,18 @@ import {
   Alert,
   useTheme,
   useMediaQuery,
-  Portal
+  Portal,
+  Button,
+  Chip
 } from '@mui/material';
 import {
   CloudSync as CloudSyncIcon,
   Settings as SettingsIcon,
   CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon
+  Error as ErrorIcon,
+  Refresh as RefreshIcon,
+  Download as DownloadIcon,
+  Upload as UploadIcon
 } from '@mui/icons-material';
 import { useAutoSync } from '../../contexts/AutoSyncContext';
 import AutoSyncManager from '../../components/AutoSyncManager/AutoSyncManager';
@@ -27,7 +32,7 @@ const QuanLyDongBo: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
-  const { status } = useAutoSync();
+  const { status, refreshData, forceSync, forceDownloadFromSheets, isRateLimited } = useAutoSync();
 
   useEffect(() => {
     // Cập nhật thời gian mỗi giây
@@ -38,12 +43,37 @@ const QuanLyDongBo: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  const handleRefreshData = async () => {
+    try {
+      await refreshData();
+    } catch (error) {
+      console.error('Lỗi khi refresh dữ liệu:', error);
+    }
+  };
+
+  const handleForceSync = async () => {
+    try {
+      await forceSync();
+    } catch (error) {
+      console.error('Lỗi khi force sync:', error);
+    }
+  };
+
+  const handleForceDownload = async () => {
+    try {
+      await forceDownloadFromSheets();
+    } catch (error) {
+      console.error('Lỗi khi force download:', error);
+    }
+  };
+
   return (
     <Box sx={{ p: { xs: 0, md: 3 }, pb: { xs: '100px', md: 3 } }}>
       {/* Mobile Header */}
       {isMobile && (
         <Portal>
           <Box
+            data-fixed-header
             sx={{
               position: 'fixed',
               top: 0,
@@ -66,21 +96,50 @@ const QuanLyDongBo: React.FC = () => {
         </Portal>
       )}
 
-      {/* Spacer for mobile header */}
-      {isMobile && <Box sx={{ height: '60px' }} />}
-
       {/* Desktop Header */}
       {!isMobile && (
         <Box mb={4}>
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 1 }}>
-            🔄 Quản Lý Đồng Bộ Dữ Liệu
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Quản lý và theo dõi việc đồng bộ dữ liệu với Google Sheets
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Cập nhật lần cuối: {lastUpdate.toLocaleString('vi-VN')}
-          </Typography>
+          <Box display="flex" alignItems="center" justifyContent="space-between">
+            <Box>
+              <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 1 }}>
+                🔄 Quản Lý Đồng Bộ Dữ Liệu
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+                Quản lý và theo dõi việc đồng bộ dữ liệu với Google Sheets
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                Cập nhật lần cuối: {lastUpdate.toLocaleString('vi-VN')}
+              </Typography>
+            </Box>
+            <Box display="flex" gap={2}>
+              <Button
+                variant="outlined"
+                startIcon={<DownloadIcon />}
+                onClick={handleForceDownload}
+                disabled={status.isProcessing || isRateLimited}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 500
+                }}
+              >
+                Tải Dữ Liệu Mới
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<UploadIcon />}
+                onClick={handleForceSync}
+                disabled={status.isProcessing || isRateLimited}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 500
+                }}
+              >
+                Đồng Bộ Ngay
+              </Button>
+            </Box>
+          </Box>
         </Box>
       )}
 
@@ -132,10 +191,10 @@ const QuanLyDongBo: React.FC = () => {
                 <SettingsIcon color="primary" sx={{ fontSize: isMobile ? 28 : 40, mr: isMobile ? 1 : 2 }} />
                 <Box>
                   <Typography variant={isMobile ? "h6" : "h4"} color="primary" sx={{ fontWeight: 600 }}>
-                    Config
+                    {status.syncCount}
                   </Typography>
                   <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">
-                    Cấu hình hệ thống
+                    Lần đồng bộ
                   </Typography>
                 </Box>
               </Box>
@@ -156,16 +215,13 @@ const QuanLyDongBo: React.FC = () => {
           }}>
             <CardContent sx={{ p: isMobile ? 1.5 : 3 }}>
               <Box display="flex" alignItems="center">
-                <CheckCircleIcon 
-                  color={status.isRunning ? "success" : "disabled"} 
-                  sx={{ fontSize: isMobile ? 28 : 40, mr: isMobile ? 1 : 2 }} 
-                />
+                <CheckCircleIcon color="success" sx={{ fontSize: isMobile ? 28 : 40, mr: isMobile ? 1 : 2 }} />
                 <Box>
-                  <Typography variant={isMobile ? "h6" : "h4"} color={status.isRunning ? "success.main" : "text.disabled"} sx={{ fontWeight: 600 }}>
-                    {status.isRunning ? "Đang chạy" : "Dừng"}
+                  <Typography variant={isMobile ? "h6" : "h4"} color="success.main" sx={{ fontWeight: 600 }}>
+                    {status.dataVersion}
                   </Typography>
                   <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">
-                    Trạng thái đồng bộ
+                    Phiên bản dữ liệu
                   </Typography>
                 </Box>
               </Box>
@@ -186,16 +242,13 @@ const QuanLyDongBo: React.FC = () => {
           }}>
             <CardContent sx={{ p: isMobile ? 1.5 : 3 }}>
               <Box display="flex" alignItems="center">
-                <ErrorIcon 
-                  color={status.error ? "error" : "disabled"} 
-                  sx={{ fontSize: isMobile ? 28 : 40, mr: isMobile ? 1 : 2 }} 
-                />
+                <RefreshIcon color="info" sx={{ fontSize: isMobile ? 28 : 40, mr: isMobile ? 1 : 2 }} />
                 <Box>
-                  <Typography variant={isMobile ? "h6" : "h4"} color={status.error ? "error.main" : "text.disabled"} sx={{ fontWeight: 600 }}>
-                    {status.error ? "Lỗi" : "OK"}
+                  <Typography variant={isMobile ? "h6" : "h4"} color="info.main" sx={{ fontWeight: 600 }}>
+                    {status.queueLength}
                   </Typography>
                   <Typography variant={isMobile ? "caption" : "body2"} color="text.secondary">
-                    Trạng thái lỗi
+                    Hàng chờ
                   </Typography>
                 </Box>
               </Box>
@@ -204,67 +257,77 @@ const QuanLyDongBo: React.FC = () => {
         </Grid>
       </Grid>
 
-      {/* Auto Sync Manager */}
-      <Card className="stagger-item hover-lift" sx={{ 
-        mb: isMobile ? 2 : 4,
-        borderRadius: 2,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        '&:hover': {
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-        },
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      }}>
-        <CardContent sx={{ p: isMobile ? 2 : 3 }}>
-          <Typography variant={isMobile ? "h6" : "h5"} gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
-            ⚙️ Cấu Hình Đồng Bộ Tự Động
-          </Typography>
-          <AutoSyncManager />
-        </CardContent>
-      </Card>
-
-      {/* Auto Sync Status */}
-      <Card className="stagger-item hover-lift" sx={{ 
-        mb: isMobile ? 2 : 4,
-        borderRadius: 2,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        '&:hover': {
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-        },
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      }}>
-        <CardContent sx={{ p: isMobile ? 2 : 3 }}>
-          <Typography variant={isMobile ? "h6" : "h5"} gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
-            📊 Trạng Thái Đồng Bộ
-          </Typography>
-          <AutoSyncStatus />
-        </CardContent>
-      </Card>
-
-      {/* Google Sheets Debug */}
-      <Card className="stagger-item hover-lift" sx={{ 
-        borderRadius: 2,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        '&:hover': {
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-        },
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      }}>
-        <CardContent sx={{ p: isMobile ? 2 : 3 }}>
-          <Typography variant={isMobile ? "h6" : "h5"} gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
-            🔧 Debug Google Sheets
-          </Typography>
-          <GoogleSheetsDebug />
-        </CardContent>
-      </Card>
-
-      {/* Mobile Last Update Info */}
+      {/* Action Buttons for Mobile */}
       {isMobile && (
-        <Box sx={{ mt: 2, textAlign: 'center' }}>
-          <Typography variant="caption" color="text.secondary">
-            Cập nhật: {lastUpdate.toLocaleString('vi-VN')}
-          </Typography>
+        <Box sx={{ mb: 3 }}>
+          <Grid container spacing={2}>
+            <Grid item xs={6}>
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<DownloadIcon />}
+                onClick={handleForceDownload}
+                disabled={status.isProcessing || isRateLimited}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  py: 1.5
+                }}
+              >
+                Tải Dữ Liệu Mới
+              </Button>
+            </Grid>
+            <Grid item xs={6}>
+              <Button
+                fullWidth
+                variant="contained"
+                startIcon={<UploadIcon />}
+                onClick={handleForceSync}
+                disabled={status.isProcessing || isRateLimited}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  py: 1.5
+                }}
+              >
+                Đồng Bộ Ngay
+              </Button>
+            </Grid>
+          </Grid>
         </Box>
       )}
+
+      {/* Status Information */}
+      {status.lastDataUpdate && (
+        <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
+          <Typography variant="body2">
+            <strong>Dữ liệu cuối cập nhật:</strong> {status.lastDataUpdate}
+          </Typography>
+        </Alert>
+      )}
+
+      {isRateLimited && (
+        <Alert severity="warning" sx={{ mb: 3, borderRadius: 2 }}>
+          <Typography variant="body2">
+            <strong>⚠️ Rate Limiting:</strong> Đang tạm dừng đồng bộ để tránh bị chặn API. Sẽ tự động khôi phục sau 30 giây.
+          </Typography>
+        </Alert>
+      )}
+
+      {status.error && (
+        <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+          <Typography variant="body2">
+            <strong>Lỗi:</strong> {status.error}
+          </Typography>
+        </Alert>
+      )}
+
+      {/* Components */}
+      <AutoSyncManager />
+      <AutoSyncStatus />
+      <GoogleSheetsDebug />
     </Box>
   );
 };

@@ -61,10 +61,24 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadDashboardData();
+    loadData();
   }, []);
 
-  const loadDashboardData = () => {
+  // Lắng nghe sự kiện refresh data từ AutoSync
+  useEffect(() => {
+    const handleDataRefreshed = () => {
+      console.log('🔄 Dashboard: Nhận sự kiện dataRefreshed, cập nhật dữ liệu...');
+      loadData();
+    };
+
+    window.addEventListener('dataRefreshed', handleDataRefreshed);
+    
+    return () => {
+      window.removeEventListener('dataRefreshed', handleDataRefreshed);
+    };
+  }, []);
+
+  const loadData = () => {
     try {
       // Lấy dữ liệu từ localStorage
       const thietBiList = thietBiService.getAll();
@@ -145,7 +159,7 @@ const Dashboard: React.FC = () => {
 
   const handleCreateSampleData = () => {
     createSampleData();
-    loadDashboardData();
+    loadData();
   };
 
   if (loading) {
@@ -391,8 +405,8 @@ const Dashboard: React.FC = () => {
                 </Typography>
                 {recentLichSu.length > 0 ? (
                   <List>
-                    {recentLichSu.map((lichSu, index) => (
-                      <ListItem key={lichSu.id} divider={index < recentLichSu.length - 1}>
+                                  {recentLichSu.map((lichSu, index) => (
+                <ListItem key={`${lichSu.id}-${index}`} divider={index < recentLichSu.length - 1}>
                         <ListItemIcon>
                           <HistoryIcon color="primary" />
                         </ListItemIcon>
@@ -441,8 +455,8 @@ const Dashboard: React.FC = () => {
                 </Typography>
                 {recentBaoTri.length > 0 ? (
                   <List>
-                    {recentBaoTri.map((baoTri, index) => (
-                      <ListItem key={baoTri.id} divider={index < recentBaoTri.length - 1}>
+                                  {recentBaoTri.map((baoTri, index) => (
+                <ListItem key={`${baoTri.id}-${index}`} divider={index < recentBaoTri.length - 1}>
                         <ListItemIcon>
                           <CheckCircleIcon color="primary" />
                         </ListItemIcon>

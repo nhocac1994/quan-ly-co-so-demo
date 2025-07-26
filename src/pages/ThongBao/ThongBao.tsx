@@ -62,6 +62,20 @@ const ThongBaoPage: React.FC = () => {
     loadThongBaoList();
   }, []);
 
+  // Lắng nghe sự kiện refresh data từ AutoSync
+  useEffect(() => {
+    const handleDataRefreshed = () => {
+      console.log('🔄 ThongBao: Nhận sự kiện dataRefreshed, cập nhật dữ liệu...');
+      loadThongBaoList();
+    };
+
+    window.addEventListener('dataRefreshed', handleDataRefreshed);
+    
+    return () => {
+      window.removeEventListener('dataRefreshed', handleDataRefreshed);
+    };
+  }, []);
+
   useEffect(() => {
     filterThongBaoList();
   }, [thongBaoList, searchTerm, typeFilter, priorityFilter, statusFilter]);
@@ -467,9 +481,9 @@ const ThongBaoPage: React.FC = () => {
         <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
           <List>
             {filteredList.length > 0 ? (
-              filteredList.map((thongBao) => (
+              filteredList.map((thongBao, index) => (
                 <ListItem
-                  key={thongBao.id}
+                  key={`${thongBao.id}-${index}`}
                   divider
                   sx={{
                     backgroundColor: thongBao.trangThai === 'chuaDoc' ? 'rgba(255, 193, 7, 0.1)' : 'inherit',

@@ -88,6 +88,20 @@ const CoSoVatChatManagement: React.FC = () => {
     loadCoSoVatChatList();
   }, []);
 
+  // Lắng nghe sự kiện refresh data từ AutoSync
+  useEffect(() => {
+    const handleDataRefreshed = () => {
+      console.log('🔄 CoSoVatChatManagement: Nhận sự kiện dataRefreshed, cập nhật dữ liệu...');
+      loadCoSoVatChatList();
+    };
+
+    window.addEventListener('dataRefreshed', handleDataRefreshed);
+    
+    return () => {
+      window.removeEventListener('dataRefreshed', handleDataRefreshed);
+    };
+  }, []);
+
   const loadCoSoVatChatList = () => {
     const data = coSoVatChatService.getAll();
     setCoSoVatChatList(data);
@@ -617,7 +631,7 @@ const CoSoVatChatManagement: React.FC = () => {
             <TableBody>
               {filteredList.map((coSoVatChat, index) => (
                 <TableRow 
-                  key={coSoVatChat.id} 
+                  key={`${coSoVatChat.id}-${index}`} 
                   hover 
                   onClick={() => handleViewDetail(coSoVatChat)}
                   sx={{ cursor: 'pointer' }}

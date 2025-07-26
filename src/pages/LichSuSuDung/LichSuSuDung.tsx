@@ -91,10 +91,24 @@ const LichSuSuDungPage: React.FC = () => {
   });
 
   useEffect(() => {
-    loadData();
+    loadLichSuSuDungList();
   }, []);
 
-  const loadData = () => {
+  // Lắng nghe sự kiện refresh data từ AutoSync
+  useEffect(() => {
+    const handleDataRefreshed = () => {
+      console.log('🔄 LichSuSuDung: Nhận sự kiện dataRefreshed, cập nhật dữ liệu...');
+      loadLichSuSuDungList();
+    };
+
+    window.addEventListener('dataRefreshed', handleDataRefreshed);
+    
+    return () => {
+      window.removeEventListener('dataRefreshed', handleDataRefreshed);
+    };
+  }, []);
+
+  const loadLichSuSuDungList = () => {
     const lichSuData = lichSuSuDungService.getAll();
     const thietBiData = thietBiService.getAll();
     const coSoVatChatData = coSoVatChatService.getAll();
@@ -125,7 +139,7 @@ const LichSuSuDungPage: React.FC = () => {
         ngayTra: new Date().toISOString()
       };
       lichSuSuDungService.update(lichSu.id, updatedLichSu);
-      loadData();
+      loadLichSuSuDungList();
     }
   };
 
@@ -630,11 +644,11 @@ const LichSuSuDungPage: React.FC = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredList.map((lichSu, index) => (
-                <TableRow 
-                  key={lichSu.id} 
-                  hover 
-                  onClick={() => handleViewDetail(lichSu)}
+                              {filteredList.map((lichSu, index) => (
+                  <TableRow 
+                    key={`${lichSu.id}-${index}`} 
+                    hover 
+                    onClick={() => handleViewDetail(lichSu)}
                   sx={{ cursor: 'pointer' }}
                 >
                   <TableCell>{index + 1}</TableCell>
