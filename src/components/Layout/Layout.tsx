@@ -36,6 +36,7 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import AutoSyncStatus from '../AutoSyncStatus/AutoSyncStatus';
+import MobileBottomNavigation from './BottomNavigation';
 
 const drawerWidth = 240;
 const collapsedDrawerWidth = 64;
@@ -347,6 +348,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           p: { xs: 2, md: 3 },
           width: { md: `calc(100% - ${currentDrawerWidth}px)` },
           mt: '64px',
+          pb: { xs: '90px', md: 3 }, // Thêm padding bottom cho mobile
           backgroundColor: '#f5f5f5',
           minHeight: 'calc(100vh - 64px)',
           transition: theme.transitions.create(['margin', 'width'], {
@@ -406,6 +408,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           Đăng xuất
         </MenuItem>
       </Menu>
+
+      {isMobile && <MobileBottomNavigation />}
     </Box>
   );
 };

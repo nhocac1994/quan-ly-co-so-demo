@@ -18,7 +18,9 @@ import {
   Select,
   MenuItem,
   InputAdornment,
-  Chip
+  Chip,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -30,6 +32,7 @@ import { useNavigate } from 'react-router-dom';
 import { thietBiService } from '../../services/localStorage';
 import { ThietBi } from '../../types';
 import QRCodeModal from '../../components/QRCodeModal/QRCodeModal';
+import MobileCardView from '../../components/MobileCardView/MobileCardView';
 import { initializeSampleEquipment, forceInitializeSampleEquipment } from '../../data/sampleEquipment';
 
 const ThietBiManagement: React.FC = () => {
@@ -45,6 +48,8 @@ const ThietBiManagement: React.FC = () => {
   const [locationFilter, setLocationFilter] = useState<string>('all');
   
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   useEffect(() => {
     // Khởi tạo dữ liệu mẫu nếu chưa có
@@ -288,21 +293,29 @@ const ThietBiManagement: React.FC = () => {
         </Box>
       </Box>
 
-            <TableContainer component={Paper} sx={{ boxShadow: 2, borderRadius: 2 }}>
-        <Table>
-          <TableHead>
-            <TableRow sx={{ backgroundColor: 'primary.main' }}>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Tên thiết bị</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Loại</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Số lượng</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Tình trạng</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Vị trí</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Nhà cung cấp</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Giá trị</TableCell>
-              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Mã QR</TableCell>
-            </TableRow>
-          </TableHead>
-                      <TableBody>
+      {isMobile ? (
+        <MobileCardView
+          data={filteredList}
+          type="thietBi"
+          onView={handleView}
+          onQrCode={handleQRCode}
+        />
+      ) : (
+        <TableContainer component={Paper} sx={{ boxShadow: 2, borderRadius: 2 }}>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ backgroundColor: 'primary.main' }}>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Tên thiết bị</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Loại</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Số lượng</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Tình trạng</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Vị trí</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Nhà cung cấp</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Giá trị</TableCell>
+                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Mã QR</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
               {filteredList.map((thietBi) => (
                 <TableRow 
                   key={thietBi.id}
@@ -317,31 +330,32 @@ const ThietBiManagement: React.FC = () => {
                     }
                   }}
                 >
-                <TableCell>{thietBi.ten}</TableCell>
-                <TableCell>{thietBi.loai}</TableCell>
-                <TableCell>{thietBi.soLuong}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={getStatusText(thietBi.tinhTrang)}
-                    color={getStatusColor(thietBi.tinhTrang) as any}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>{thietBi.viTri}</TableCell>
-                <TableCell>{thietBi.nhaCungCap || '-'}</TableCell>
-                <TableCell>{thietBi.giaTri ? `${thietBi.giaTri.toLocaleString()} VNĐ` : '-'}</TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  <Tooltip title="Xem mã QR thiết bị" arrow>
-                    <IconButton onClick={() => handleQRCode(thietBi)} color="primary">
-                      <QrCodeIcon />
-                    </IconButton>
-                  </Tooltip>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+                  <TableCell>{thietBi.ten}</TableCell>
+                  <TableCell>{thietBi.loai}</TableCell>
+                  <TableCell>{thietBi.soLuong}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={getStatusText(thietBi.tinhTrang)}
+                      color={getStatusColor(thietBi.tinhTrang) as any}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>{thietBi.viTri}</TableCell>
+                  <TableCell>{thietBi.nhaCungCap || '-'}</TableCell>
+                  <TableCell>{thietBi.giaTri ? `${thietBi.giaTri.toLocaleString()} VNĐ` : '-'}</TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Tooltip title="Xem mã QR thiết bị" arrow>
+                      <IconButton onClick={() => handleQRCode(thietBi)} color="primary">
+                        <QrCodeIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
 
       {/* QR Code Modal */}
       <QRCodeModal
